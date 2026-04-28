@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AWS SOC 2 Evidence Collector</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0f4f8;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --primary: #f97316;
+      --primary-dark: #ea580c;
+      --aws: #ff9900;
+      --aws-dark: #e8870a;
+      --text: #1e293b;
+      --muted: #64748b;
+      --sidebar-w: 260px;
+      --green: #16a34a;
+      --red: #dc2626;
+      --amber: #d97706;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: #0f1923;
+      color: #94a3b8;
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    .sidebar-logo {
+      padding: 22px 20px 16px;
+      border-bottom: 1px solid #1e2d3d;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .sidebar-logo .aws-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--aws);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-logo h1 { font-size: 13px; font-weight: 700; color: #f1f5f9; line-height: 1.3; }
+    .sidebar-logo p  { font-size: 11px; color: #475569; margin-top: 2px; }
+
+    .nav-section {
+      padding: 14px 16px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #334155;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 18px;
+      font-size: 13px;
+      color: #64748b;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+      text-decoration: none;
+    }
+
+    .nav-item:hover { background: #1a2736; color: #cbd5e1; }
+    .nav-item.active { background: #1a2736; color: #f1f5f9; border-left-color: var(--aws); font-weight: 600; }
+    .nav-item .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .5; flex-shrink: 0; }
+
+    /* ── Main ── */
+    #main { flex: 1; overflow-y: auto; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #0f1923 0%, #1a2f45 60%, #1a3a2a 100%);
+      padding: 40px 48px 36px;
+      color: white;
+      border-bottom: 3px solid var(--aws);
+    }
+
+    .hero-top { display: flex; align-items: flex-start; gap: 20px; margin-bottom: 20px; }
+
+    .hero-aws-badge {
+      background: var(--aws);
+      border-radius: 12px;
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      flex-shrink: 0;
+    }
+
+    .hero-title h2 { font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+    .hero-title p  { font-size: 14px; color: #94a3b8; line-height: 1.6; max-width: 620px; }
+
+    .hero-badges { display: flex; flex-wrap: wrap; gap: 8px; }
+
+    .hbadge {
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .02em;
+    }
+
+    .hbadge-aws    { background: rgba(255,153,0,.2); color: #ffb733; border: 1px solid rgba(255,153,0,.3); }
+    .hbadge-green  { background: rgba(74,222,128,.15); color: #4ade80; border: 1px solid rgba(74,222,128,.2); }
+    .hbadge-blue   { background: rgba(96,165,250,.15); color: #60a5fa; border: 1px solid rgba(96,165,250,.2); }
+    .hbadge-slate  { background: rgba(148,163,184,.1); color: #94a3b8; border: 1px solid rgba(148,163,184,.2); }
+
+    /* ── Content ── */
+    .content { padding: 36px 48px 80px; }
+
+    /* ── Section cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 28px;
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #fafbfc;
+    }
+
+    .card-header h3 { font-size: 15px; font-weight: 700; }
+    .card-header .icon { font-size: 20px; }
+    .card-body { padding: 24px; }
+
+    /* ── Control mapping table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin: 0;
+    }
+
+    thead tr { background: #f1f5f9; }
+
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      border: 1px solid var(--border);
+    }
+
+    td {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    .ctrl-badge {
+      display: inline-block;
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+      border-radius: 4px;
+      padding: 2px 7px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: monospace;
+      margin: 1px 2px;
+    }
+
+    .pass { color: var(--green); font-weight: 700; }
+    .warn { color: var(--amber); font-weight: 700; }
+    .fail { color: var(--red);   font-weight: 700; }
+
+    /* ── Stat grid ── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      text-align: center;
+    }
+
+    .stat-card .num  { font-size: 28px; font-weight: 800; color: var(--primary); line-height: 1; margin-bottom: 4px; }
+    .stat-card .lbl  { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+    /* ── Code blocks ── */
+    .code-wrap {
+      background: #0f172a;
+      border-radius: 10px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+
+    .code-topbar {
+      background: #1e293b;
+      padding: 8px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .code-topbar span { font-size: 12px; color: #64748b; }
+    .lang-pill { background: #0f172a; color: #7dd3fc; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-family: monospace; font-weight: 700; }
+    .copy-btn { background: #334155; color: #94a3b8; border: none; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; transition: all .15s; }
+    .copy-btn:hover { background: #475569; color: #e2e8f0; }
+
+    .code-body {
+      padding: 18px 20px;
+      overflow-x: auto;
+      max-height: 520px;
+      overflow-y: auto;
+    }
+
+    .code-body pre {
+      margin: 0;
+      font-family: "Cascadia Code", "Fira Code", Consolas, monospace;
+      font-size: 12.5px;
+      line-height: 1.75;
+      color: #e2e8f0;
+      white-space: pre;
+    }
+
+    /* syntax */
+    .kw  { color: #c084fc; }
+    .fn  { color: #60a5fa; }
+    .st  { color: #86efac; }
+    .cm  { color: #4b5563; font-style: italic; }
+    .nm  { color: #fde68a; }
+    .dec { color: #f472b6; }
+
+    /* ── Shell / usage blocks ── */
+    .shell-wrap { background: #0f172a; border-radius: 8px; overflow: hidden; margin: 10px 0 16px; }
+    .shell-bar  { background: #1e293b; padding: 6px 14px; font-size: 11px; color: #475569; display: flex; align-items: center; gap: 8px; }
+    .shell-dot  { width: 10px; height: 10px; border-radius: 50%; }
+    .shell-body { padding: 14px 18px; overflow-x: auto; }
+    .shell-body pre {
+      margin: 0;
+      font-family: "Cascadia Code", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      color: #e2e8f0;
+      white-space: pre;
+    }
+    .s-comment { color: #4b5563; }
+    .s-flag    { color: #7dd3fc; }
+    .s-val     { color: #86efac; }
+    .s-bin     { color: #fde68a; }
+    .s-dollar  { color: #f472b6; }
+
+    /* ── JSON preview ── */
+    .json-key    { color: #7dd3fc; }
+    .json-str    { color: #86efac; }
+    .json-num    { color: #fde68a; }
+    .json-bool   { color: #c084fc; }
+    .json-null   { color: #94a3b8; }
+
+    /* ── IAM policy toggle ── */
+    .toggle-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      background: #1e293b;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 16px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-top: 16px;
+      transition: background .15s;
+    }
+    .toggle-btn:hover { background: #273549; }
+    .toggle-btn .arrow { font-size: 12px; transition: transform .2s; }
+    .toggle-btn.open .arrow { transform: rotate(90deg); }
+
+    .collapsible { display: none; margin-top: 8px; }
+    .collapsible.open { display: block; }
+
+    /* ── Warning / info boxes ── */
+    .info-box {
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin: 14px 0;
+      font-size: 13px;
+      line-height: 1.6;
+      display: flex;
+      gap: 12px;
+    }
+
+    .info-box .ico { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+    .info-box.blue  { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .info-box.amber { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    .info-box.green { background: #f0fdf4; border: 1px solid #bbf7d0; color: #14532d; }
+    .info-box.red   { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+
+    /* ── Two-column layout ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+
+    /* ── Step list ── */
+    .steps { counter-reset: step; }
+    .step {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 18px;
+      align-items: flex-start;
+    }
+    .step-num {
+      counter-increment: step;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--aws);
+      color: white;
+      font-size: 13px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-content h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+    .step-content p  { font-size: 13px; color: #475569; line-height: 1.6; }
+
+    /* ── Troubleshoot accordion ── */
+    .trouble-item { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+    .trouble-q {
+      padding: 12px 18px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafbfc;
+      user-select: none;
+    }
+    .trouble-q:hover { background: #f1f5f9; }
+    .trouble-a { display: none; padding: 14px 18px; font-size: 13px; color: #475569; line-height: 1.7; border-top: 1px solid var(--border); }
+    .trouble-a.open { display: block; }
+
+    /* ── Options table ── */
+    code { background: #f1f5f9; padding: 1px 6px; border-radius: 4px; font-family: monospace; font-size: 12px; color: #e11d48; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    @media (max-width: 900px) {
+      #sidebar { display: none; }
+      .content { padding: 20px 16px 60px; }
+      .hero { padding: 24px 20px; }
+      .two-col { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="aws-icon">☁️</div>
+    <div>
+      <h1>AWS Evidence<br>Collector</h1>
+      <p>SOC 2 · v1.0</p>
+    </div>
+  </div>
+
+  <div class="nav-section">Overview</div>
+  <a class="nav-item active" onclick="goto('overview')"><span class="dot"></span>Overview</a>
+  <a class="nav-item" onclick="goto('controls')"><span class="dot"></span>SOC 2 Control Mapping</a>
+
+  <div class="nav-section">Setup</div>
+  <a class="nav-item" onclick="goto('prerequisites')"><span class="dot"></span>Prerequisites</a>
+  <a class="nav-item" onclick="goto('installation')"><span class="dot"></span>Installation</a>
+  <a class="nav-item" onclick="goto('iam')"><span class="dot"></span>IAM Permissions</a>
+
+  <div class="nav-section">Usage</div>
+  <a class="nav-item" onclick="goto('usage')"><span class="dot"></span>Commands &amp; Options</a>
+  <a class="nav-item" onclick="goto('output')"><span class="dot"></span>Output Format</a>
+
+  <div class="nav-section">Source Code</div>
+  <a class="nav-item" onclick="goto('collector')"><span class="dot"></span>collector.py</a>
+  <a class="nav-item" onclick="goto('iampolicy')"><span class="dot"></span>iam-policy.json</a>
+
+  <div class="nav-section">Reference</div>
+  <a class="nav-item" onclick="goto('troubleshoot')"><span class="dot"></span>Troubleshooting</a>
+  <a class="nav-item" onclick="goto('limitations')"><span class="dot"></span>Limitations</a>
+
+  <div style="padding:20px 16px;margin-top:auto;border-top:1px solid #1e2d3d">
+    <a href="templates.html" style="display:flex;align-items:center;gap:8px;font-size:12px;color:#475569;text-decoration:none;padding:8px 0">
+      ← Back to GRC Dashboard
+    </a>
+  </div>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+
+  <!-- Hero -->
+  <div class="hero" id="overview">
+    <div class="hero-top">
+      <div class="hero-aws-badge">☁️</div>
+      <div class="hero-title">
+        <h2>AWS SOC 2 Evidence Collector</h2>
+        <p>Automated Python script that collects compliance evidence from AWS services and exports audit-ready reports mapped to SOC 2 Trust Service Criteria.</p>
+      </div>
+    </div>
+    <div class="hero-badges">
+      <span class="hbadge hbadge-aws">Python 3.11+</span>
+      <span class="hbadge hbadge-green">Read-only · No destructive ops</span>
+      <span class="hbadge hbadge-blue">JSON &amp; CSV export</span>
+      <span class="hbadge hbadge-slate">boto3 · AWS SDK</span>
+      <span class="hbadge hbadge-slate">CC6.1 · CC6.2 · CC6.3 · CC6.7 · CC7.2 · CC7.3</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Stats -->
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num">4</div><div class="lbl">Evidence Types</div></div>
+      <div class="stat-card"><div class="num">6</div><div class="lbl">SOC 2 Controls</div></div>
+      <div class="stat-card"><div class="num">6</div><div class="lbl">AWS Services</div></div>
+      <div class="stat-card"><div class="num">2</div><div class="lbl">Output Formats</div></div>
+      <div class="stat-card"><div class="num" style="color:#16a34a">RO</div><div class="lbl">Read-Only Access</div></div>
+    </div>
+
+    <!-- When to use -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-header"><span class="icon">✅</span><h3>Use this script when…</h3></div>
+        <div class="card-body">
+          <ul style="padding-left:18px;font-size:13px;line-height:2;color:#334155">
+            <li>Preparing for an initial SOC 2 audit</li>
+            <li>Collecting quarterly evidence for ongoing SOC 2 compliance</li>
+            <li>Performing gap analysis against SOC 2 requirements</li>
+            <li>Responding to auditor evidence requests</li>
+            <li>Learning AWS SOC 2 evidence requirements</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="icon">⛔</span><h3>Do NOT use for…</h3></div>
+        <div class="card-body">
+          <ul style="padding-left:18px;font-size:13px;line-height:2;color:#334155">
+            <li>Continuous monitoring (use AWS Audit Manager)</li>
+            <li>Real-time security alerting (use AWS Security Hub)</li>
+            <li>Comprehensive security assessment</li>
+            <li>Multi-account automated collection at scale</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SOC 2 Control Mapping -->
+    <div class="card" id="controls">
+      <div class="card-header"><span class="icon">🗺️</span><h3>SOC 2 Control Mapping</h3></div>
+      <div class="card-body">
+        <table>
+          <thead>
+            <tr>
+              <th>Evidence Type</th>
+              <th>SOC 2 Control</th>
+              <th>Description</th>
+              <th>Audit Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>IAM Users</strong></td><td><span class="ctrl-badge">CC6.1</span></td><td>Logical and physical access controls</td><td>Verify user access is properly controlled</td></tr>
+            <tr><td><strong>IAM Users</strong></td><td><span class="ctrl-badge">CC6.2</span></td><td>Registration and authorization of new users</td><td>Confirm user provisioning process</td></tr>
+            <tr><td><strong>IAM Users</strong></td><td><span class="ctrl-badge">CC6.3</span></td><td>Removal of user access</td><td>Demonstrate access removal for terminated users</td></tr>
+            <tr><td><strong>MFA Status</strong></td><td><span class="ctrl-badge">CC6.1</span></td><td>Multi-factor authentication enforcement</td><td>Prove MFA enforcement for privileged access</td></tr>
+            <tr><td><strong>Access Keys</strong></td><td><span class="ctrl-badge">CC6.1</span> <span class="ctrl-badge">CC6.2</span></td><td>Programmatic access controls</td><td>Identify long-lived credentials and rotation needs</td></tr>
+            <tr><td><strong>S3 Encryption</strong></td><td><span class="ctrl-badge">CC6.7</span></td><td>Data protection at rest</td><td>Verify sensitive data is encrypted</td></tr>
+            <tr><td><strong>RDS Encryption</strong></td><td><span class="ctrl-badge">CC6.7</span></td><td>Database encryption at rest</td><td>Confirm database encryption status</td></tr>
+            <tr><td><strong>EBS Encryption</strong></td><td><span class="ctrl-badge">CC6.7</span></td><td>Volume encryption at rest</td><td>Demonstrate storage encryption</td></tr>
+            <tr><td><strong>CloudTrail</strong></td><td><span class="ctrl-badge">CC7.2</span></td><td>System activity logging</td><td>Prove comprehensive audit logging is in place</td></tr>
+            <tr><td><strong>Log Validation</strong></td><td><span class="ctrl-badge">CC7.2</span></td><td>Log file integrity validation</td><td>Verify logs cannot be tampered with</td></tr>
+            <tr><td><strong>CloudWatch Alarms</strong></td><td><span class="ctrl-badge">CC7.3</span></td><td>Monitoring and alerting</td><td>Show proactive monitoring is in place</td></tr>
+            <tr><td><strong>Log Groups</strong></td><td><span class="ctrl-badge">CC7.3</span></td><td>Log retention configuration</td><td>Demonstrate logs are retained per policy</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Prerequisites -->
+    <div class="card" id="prerequisites">
+      <div class="card-header"><span class="icon">📋</span><h3>Prerequisites</h3></div>
+      <div class="card-body">
+        <table>
+          <thead><tr><th>Requirement</th><th>Version / Notes</th><th>How to verify</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Python</strong></td><td>3.11 or higher</td><td><code>python --version</code></td></tr>
+            <tr><td><strong>pip</strong></td><td>Latest recommended</td><td><code>pip --version</code></td></tr>
+            <tr><td><strong>boto3</strong></td><td>≥ 1.35.0</td><td><code>pip show boto3</code></td></tr>
+            <tr><td><strong>AWS CLI</strong></td><td>v2 recommended</td><td><code>aws --version</code></td></tr>
+            <tr><td><strong>AWS Credentials</strong></td><td>Configured profile or IAM role</td><td><code>aws sts get-caller-identity</code></td></tr>
+            <tr><td><strong>Network</strong></td><td>Outbound HTTPS to AWS endpoints</td><td>Must reach *.amazonaws.com</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Installation -->
+    <div class="card" id="installation">
+      <div class="card-header"><span class="icon">⚙️</span><h3>Installation</h3></div>
+      <div class="card-body">
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-content">
+              <h4>Navigate to the script directory</h4>
+              <div class="shell-wrap"><div class="shell-bar"><span class="shell-dot" style="background:#ef4444"></span><span class="shell-dot" style="background:#fbbf24"></span><span class="shell-dot" style="background:#4ade80"></span><span style="font-size:11px;color:#475569;margin-left:8px">bash</span></div><div class="shell-body"><pre><span class="s-bin">cd</span> awesome-grc-ai/scripts/aws-evidence-collector</pre></div></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-content">
+              <h4>Install Python dependencies</h4>
+              <div class="shell-wrap"><div class="shell-bar"><span class="shell-dot" style="background:#ef4444"></span><span class="shell-dot" style="background:#fbbf24"></span><span class="shell-dot" style="background:#4ade80"></span></div><div class="shell-body"><pre><span class="s-comment"># Recommended: create a virtual environment first</span>
+<span class="s-bin">python</span> -m venv venv
+<span class="s-bin">source</span> venv/bin/activate  <span class="s-comment"># Windows: venv\Scripts\activate</span>
+
+<span class="s-bin">pip</span> install -r requirements.txt</pre></div></div>
+              <p>requirements.txt contains: <code>boto3&gt;=1.35.0</code></p>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-content">
+              <h4>Configure AWS credentials</h4>
+              <div class="shell-wrap"><div class="shell-bar"><span class="shell-dot" style="background:#ef4444"></span><span class="shell-dot" style="background:#fbbf24"></span><span class="shell-dot" style="background:#4ade80"></span></div><div class="shell-body"><pre><span class="s-comment"># Configure a named profile</span>
+<span class="s-bin">aws</span> configure <span class="s-flag">--profile</span> <span class="s-val">soc2-evidence</span>
+
+<span class="s-comment"># Verify it works</span>
+<span class="s-bin">aws</span> sts get-caller-identity <span class="s-flag">--profile</span> <span class="s-val">soc2-evidence</span></pre></div></div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-content">
+              <h4>Run a test collection</h4>
+              <div class="shell-wrap"><div class="shell-bar"><span class="shell-dot" style="background:#ef4444"></span><span class="shell-dot" style="background:#fbbf24"></span><span class="shell-dot" style="background:#4ade80"></span></div><div class="shell-body"><pre><span class="s-bin">python</span> collector.py <span class="s-flag">--profile</span> <span class="s-val">soc2-evidence</span> <span class="s-flag">--output</span> <span class="s-val">./test-run</span></pre></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IAM Permissions -->
+    <div class="card" id="iam">
+      <div class="card-header"><span class="icon">🔐</span><h3>IAM Permissions</h3></div>
+      <div class="card-body">
+        <div class="info-box green"><span class="ico">✅</span><div>The script is <strong>100% read-only</strong>. It never creates, modifies, or deletes any AWS resources. All API calls are logged in CloudTrail.</div></div>
+
+        <p style="font-size:13px;line-height:1.7;margin-bottom:16px;color:#334155">The script needs these read-only permissions across 6 AWS services:</p>
+
+        <table style="margin-bottom:20px">
+          <thead><tr><th>Service</th><th>Actions Required</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><strong>IAM</strong></td><td><code>ListUsers</code> <code>ListMFADevices</code> <code>ListAccessKeys</code> <code>ListGroupsForUser</code> <code>ListAttachedUserPolicies</code></td><td>CC6.1 – CC6.3 evidence</td></tr>
+            <tr><td><strong>S3</strong></td><td><code>ListAllMyBuckets</code> <code>GetBucketEncryption</code></td><td>CC6.7 — bucket encryption</td></tr>
+            <tr><td><strong>RDS</strong></td><td><code>DescribeDBInstances</code></td><td>CC6.7 — DB encryption</td></tr>
+            <tr><td><strong>EC2</strong></td><td><code>DescribeVolumes</code></td><td>CC6.7 — EBS encryption</td></tr>
+            <tr><td><strong>CloudTrail</strong></td><td><code>DescribeTrails</code> <code>GetTrailStatus</code> <code>GetEventSelectors</code></td><td>CC7.2 — logging evidence</td></tr>
+            <tr><td><strong>CloudWatch / Logs</strong></td><td><code>DescribeAlarms</code> <code>DescribeLogGroups</code></td><td>CC7.3 — monitoring evidence</td></tr>
+            <tr><td><strong>STS</strong></td><td><code>GetCallerIdentity</code></td><td>Identify account for evidence metadata</td></tr>
+          </tbody>
+        </table>
+
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px">Setup a dedicated IAM user for evidence collection</h4>
+        <div class="shell-wrap"><div class="shell-bar"><span class="shell-dot" style="background:#ef4444"></span><span class="shell-dot" style="background:#fbbf24"></span><span class="shell-dot" style="background:#4ade80"></span></div><div class="shell-body"><pre><span class="s-comment"># 1. Create the IAM policy from the template</span>
+<span class="s-bin">aws</span> iam create-policy \
+  <span class="s-flag">--policy-name</span> <span class="s-val">SOC2EvidenceCollectorReadOnly</span> \
+  <span class="s-flag">--policy-document</span> <span class="s-val">file://iam-policy.json</span>
+
+<span class="s-comment"># 2. Create a dedicated IAM user</span>
+<span class="s-bin">aws</span> iam create-user <span class="s-flag">--user-name</span> <span class="s-val">soc2-evidence-collector</span>
+
+<span class="s-comment"># 3. Attach the policy (replace ACCOUNT_ID)</span>
+<span class="s-bin">aws</span> iam attach-user-policy \
+  <span class="s-flag">--user-name</span> <span class="s-val">soc2-evidence-collector</span> \
+  <span class="s-flag">--policy-arn</span> <span class="s-val">arn:aws:iam::ACCOUNT_ID:policy/SOC2EvidenceCollectorReadOnly</span>
+
+<span class="s-comment"># 4. Create access keys</span>
+<span class="s-bin">aws</span> iam create-access-key <span class="s-flag">--user-name</span> <span class="s-val">soc2-evidence-collector</span>
+
+<span class="s-comment"># 5. Configure a local AWS CLI profile</span>
+<span class="s-bin">aws</span> configure <span class="s-flag">--profile</span> <span class="s-val">soc2-evidence</span></pre></div></div>
+
+        <button class="toggle-btn" onclick="toggleSection('iam-policy-json', this)">
+          <span>📄 iam-policy.json — full policy document</span>
+          <span class="arrow">▶</span>
+        </button>
+        <div class="collapsible" id="iam-policy-json">
+          <div class="code-wrap" style="margin-top:0;border-radius:0 0 8px 8px">
+            <div class="code-topbar"><span>iam-policy.json</span><span class="lang-pill">JSON</span></div>
+            <div class="code-body"><pre>{
+  <span class="json-key">"Version"</span>: <span class="json-str">"2012-10-17"</span>,
+  <span class="json-key">"Statement"</span>: [
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"IAMReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [
+        <span class="json-str">"iam:ListUsers"</span>,
+        <span class="json-str">"iam:ListMFADevices"</span>,
+        <span class="json-str">"iam:ListAccessKeys"</span>,
+        <span class="json-str">"iam:ListGroupsForUser"</span>,
+        <span class="json-str">"iam:ListAttachedUserPolicies"</span>,
+        <span class="json-str">"iam:ListUserPolicies"</span>
+      ],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"S3ReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [
+        <span class="json-str">"s3:ListAllMyBuckets"</span>,
+        <span class="json-str">"s3:GetBucketEncryption"</span>
+      ],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"RDSReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [<span class="json-str">"rds:DescribeDBInstances"</span>],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"EC2ReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [<span class="json-str">"ec2:DescribeVolumes"</span>],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"CloudTrailReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [
+        <span class="json-str">"cloudtrail:DescribeTrails"</span>,
+        <span class="json-str">"cloudtrail:GetTrailStatus"</span>,
+        <span class="json-str">"cloudtrail:GetEventSelectors"</span>
+      ],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"CloudWatchReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [
+        <span class="json-str">"cloudwatch:DescribeAlarms"</span>,
+        <span class="json-str">"logs:DescribeLogGroups"</span>
+      ],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"STSReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [<span class="json-str">"sts:GetCallerIdentity"</span>],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    }
+  ]
+}</pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Usage -->
+    <div class="card" id="usage">
+      <div class="card-header"><span class="icon">▶️</span><h3>Commands &amp; Options</h3></div>
+      <div class="card-body">
+        <table style="margin-bottom:24px">
+          <thead><tr><th>Option</th><th>Required</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>--profile</code></td><td>No</td><td><code>default</code></td><td>AWS profile from <code>~/.aws/credentials</code></td></tr>
+            <tr><td><code>--region</code></td><td>No</td><td><code>us-east-1</code></td><td>AWS region to collect evidence from</td></tr>
+            <tr><td><code>--output</code></td><td>No</td><td><code>./evidence</code></td><td>Output directory for evidence files</td></tr>
+            <tr><td><code>--format</code></td><td>No</td><td><code>json</code></td><td>Output format: <code>json</code>, <code>csv</code>, or <code>both</code></td></tr>
+            <tr><td><code>--help</code></td><td>No</td><td>—</td><td>Display help with examples</td></tr>
+          </tbody>
+        </table>
+
+        <h4 style="font-size:14px;font-weight:700;margin-bottom:12px">Examples</h4>
+        <div class="shell-wrap"><div class="shell-bar"><span class="shell-dot" style="background:#ef4444"></span><span class="shell-dot" style="background:#fbbf24"></span><span class="shell-dot" style="background:#4ade80"></span><span style="font-size:11px;color:#475569;margin-left:8px">collector.py</span></div><div class="shell-body"><pre><span class="s-comment"># Use default AWS profile</span>
+<span class="s-bin">python</span> collector.py
+
+<span class="s-comment"># Named profile + specific region</span>
+<span class="s-bin">python</span> collector.py <span class="s-flag">--profile</span> <span class="s-val">production</span> <span class="s-flag">--region</span> <span class="s-val">us-west-2</span>
+
+<span class="s-comment"># Export both JSON and CSV to custom directory</span>
+<span class="s-bin">python</span> collector.py \
+  <span class="s-flag">--profile</span>  <span class="s-val">production</span> \
+  <span class="s-flag">--region</span>   <span class="s-val">us-east-1</span> \
+  <span class="s-flag">--output</span>   <span class="s-val">./soc2-evidence-2026-q1</span> \
+  <span class="s-flag">--format</span>   <span class="s-val">both</span>
+
+<span class="s-comment"># CSV only (for spreadsheet / auditor review)</span>
+<span class="s-bin">python</span> collector.py <span class="s-flag">--profile</span> <span class="s-val">prod</span> <span class="s-flag">--format</span> <span class="s-val">csv</span></pre></div></div>
+
+        <div class="info-box amber" style="margin-top:8px">
+          <span class="ico">ℹ️</span>
+          <div><strong>Multi-region note:</strong> IAM evidence is global, but S3 encryption, CloudTrail, and CloudWatch evidence is region-specific. Run the script once per region if you have resources spread across multiple regions.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Output format -->
+    <div class="card" id="output">
+      <div class="card-header"><span class="icon">📄</span><h3>Output Format</h3></div>
+      <div class="card-body">
+        <div class="two-col">
+          <div>
+            <h4 style="font-size:14px;font-weight:700;margin-bottom:10px">JSON output files</h4>
+            <ul style="font-size:13px;line-height:2;padding-left:18px;color:#334155">
+              <li><code>aws_evidence_YYYY-MM-DDTHH-MM-SSZ.json</code></li>
+            </ul>
+            <p style="font-size:13px;color:#64748b;margin-top:8px;line-height:1.6">Single nested file — machine-readable, suitable for automated processing and integration with GRC tools.</p>
+          </div>
+          <div>
+            <h4 style="font-size:14px;font-weight:700;margin-bottom:10px">CSV output files</h4>
+            <ul style="font-size:13px;line-height:2;padding-left:18px;color:#334155">
+              <li><code>aws_iam_users_*.csv</code></li>
+              <li><code>aws_s3_encryption_*.csv</code></li>
+              <li><code>aws_cloudtrail_*.csv</code></li>
+            </ul>
+            <p style="font-size:13px;color:#64748b;margin-top:8px;line-height:1.6">Flattened — easy import into Excel, audit management tools, and auditor review.</p>
+          </div>
+        </div>
+
+        <h4 style="font-size:14px;font-weight:700;margin:20px 0 10px">Sample JSON structure</h4>
+        <div class="code-wrap">
+          <div class="code-topbar"><span>aws_evidence_2026-01-27T12-00-00Z.json</span><span class="lang-pill">JSON</span></div>
+          <div class="code-body"><pre>{
+  <span class="json-key">"metadata"</span>: {
+    <span class="json-key">"collection_timestamp"</span>: <span class="json-str">"2026-01-27T12:00:00Z"</span>,
+    <span class="json-key">"account_id"</span>: <span class="json-str">"123456789012"</span>,
+    <span class="json-key">"region"</span>: <span class="json-str">"us-east-1"</span>,
+    <span class="json-key">"collector_version"</span>: <span class="json-str">"1.0"</span>
+  },
+  <span class="json-key">"iam"</span>: {
+    <span class="json-key">"control_mapping"</span>: [<span class="json-str">"CC6.1"</span>, <span class="json-str">"CC6.2"</span>, <span class="json-str">"CC6.3"</span>],
+    <span class="json-key">"users"</span>: [
+      {
+        <span class="json-key">"username"</span>: <span class="json-str">"john.doe"</span>,
+        <span class="json-key">"mfa_enabled"</span>: <span class="json-bool">true</span>,
+        <span class="json-key">"access_keys"</span>: [{ <span class="json-key">"key_id"</span>: <span class="json-str">"AKIA..."</span>, <span class="json-key">"status"</span>: <span class="json-str">"Active"</span> }],
+        <span class="json-key">"groups"</span>: [<span class="json-str">"Developers"</span>],
+        <span class="json-key">"attached_policies"</span>: [<span class="json-str">"ReadOnlyAccess"</span>]
+      }
+    ],
+    <span class="json-key">"summary"</span>: {
+      <span class="json-key">"total_users"</span>: <span class="json-num">25</span>,
+      <span class="json-key">"users_with_mfa"</span>: <span class="json-num">23</span>,
+      <span class="json-key">"users_without_mfa"</span>: <span class="json-num">2</span>
+    }
+  },
+  <span class="json-key">"encryption"</span>: {
+    <span class="json-key">"control_mapping"</span>: [<span class="json-str">"CC6.7"</span>],
+    <span class="json-key">"s3_buckets"</span>: [
+      { <span class="json-key">"bucket_name"</span>: <span class="json-str">"my-data-bucket"</span>, <span class="json-key">"encrypted"</span>: <span class="json-bool">true</span>, <span class="json-key">"encryption_type"</span>: <span class="json-str">"aws:kms"</span> }
+    ],
+    <span class="json-key">"summary"</span>: { <span class="json-key">"s3_encrypted"</span>: <span class="json-num">12</span>, <span class="json-key">"s3_unencrypted"</span>: <span class="json-num">1</span>, <span class="json-key">"s3_total"</span>: <span class="json-num">13</span> }
+  },
+  <span class="json-key">"logging"</span>: {
+    <span class="json-key">"control_mapping"</span>: [<span class="json-str">"CC7.2"</span>],
+    <span class="json-key">"trails"</span>: [
+      {
+        <span class="json-key">"name"</span>: <span class="json-str">"management-events"</span>,
+        <span class="json-key">"is_multi_region"</span>: <span class="json-bool">true</span>,
+        <span class="json-key">"is_logging"</span>: <span class="json-bool">true</span>,
+        <span class="json-key">"log_file_validation_enabled"</span>: <span class="json-bool">true</span>
+      }
+    ]
+  },
+  <span class="json-key">"monitoring"</span>: {
+    <span class="json-key">"control_mapping"</span>: [<span class="json-str">"CC7.3"</span>],
+    <span class="json-key">"summary"</span>: { <span class="json-key">"total_alarms"</span>: <span class="json-num">14</span>, <span class="json-key">"alarms_in_ok_state"</span>: <span class="json-num">12</span>, <span class="json-key">"total_log_groups"</span>: <span class="json-num">8</span> }
+  }
+}</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Full source -->
+    <div class="card" id="collector">
+      <div class="card-header"><span class="icon">🐍</span><h3>collector.py — Full Source</h3></div>
+      <div class="card-body" style="padding:0">
+        <div class="code-wrap" style="border-radius:0;margin:0">
+          <div class="code-topbar">
+            <span>collector.py</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <span class="lang-pill">Python 3.11+</span>
+              <button class="copy-btn" onclick="copyCode('full-src')">Copy</button>
+            </div>
+          </div>
+          <div class="code-body" style="max-height:640px" id="full-src"><pre>
+<span class="cm">#!/usr/bin/env python3</span>
+<span class="cm">"""</span>
+<span class="cm">AWS SOC 2 Evidence Collector</span>
+<span class="cm">Collects compliance evidence from AWS for SOC 2 audit preparation.</span>
+<span class="cm"></span>
+<span class="cm">Usage:</span>
+<span class="cm">    python collector.py --profile &lt;aws-profile&gt; --output &lt;output-dir&gt; --format &lt;json|csv|both&gt;</span>
+<span class="cm">"""</span>
+
+<span class="kw">import</span> boto3
+<span class="kw">import</span> json
+<span class="kw">import</span> csv
+<span class="kw">import</span> argparse
+<span class="kw">import</span> os
+<span class="kw">from</span> datetime <span class="kw">import</span> datetime
+<span class="kw">from</span> typing <span class="kw">import</span> Dict, List, Any
+
+
+<span class="kw">class</span> <span class="fn">AWSEvidenceCollector</span>:
+    <span class="st">"""Collects SOC 2 compliance evidence from AWS services."""</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, profile: str = <span class="kw">None</span>, region: str = <span class="kw">None</span>):
+        session_args = {}
+        <span class="kw">if</span> profile:
+            session_args[<span class="st">'profile_name'</span>] = profile
+        session_args[<span class="st">'region_name'</span>] = region <span class="kw">or</span> <span class="st">'us-east-1'</span>
+        <span class="kw">try</span>:
+            self.session = boto3.<span class="fn">Session</span>(**session_args)
+            self.region = self.session.region_name
+            sts = self.session.<span class="fn">client</span>(<span class="st">'sts'</span>)
+            self.account_id = sts.<span class="fn">get_caller_identity</span>()[<span class="st">'Account'</span>]
+        <span class="kw">except</span> Exception <span class="kw">as</span> e:
+            <span class="kw">raise</span> <span class="fn">RuntimeError</span>(<span class="st">f"Failed to initialize AWS session: {e}"</span>)
+        self.timestamp = datetime.<span class="fn">utcnow</span>().<span class="fn">isoformat</span>() + <span class="st">'Z'</span>
+
+    <span class="kw">def</span> <span class="fn">collect_iam_evidence</span>(self) -&gt; Dict[str, Any]:
+        <span class="st">"""CC6.1, CC6.2, CC6.3 — IAM user access controls."""</span>
+        <span class="fn">print</span>(<span class="st">"Collecting IAM evidence..."</span>)
+        iam = self.session.<span class="fn">client</span>(<span class="st">'iam'</span>)
+        evidence = {
+            <span class="st">'collection_timestamp'</span>: self.timestamp,
+            <span class="st">'account_id'</span>: self.account_id,
+            <span class="st">'control_mapping'</span>: [<span class="st">'CC6.1'</span>, <span class="st">'CC6.2'</span>, <span class="st">'CC6.3'</span>],
+            <span class="st">'evidence_type'</span>: <span class="st">'IAM User Access Report'</span>,
+            <span class="st">'users'</span>: []
+        }
+        paginator = iam.<span class="fn">get_paginator</span>(<span class="st">'list_users'</span>)
+        <span class="kw">for</span> page <span class="kw">in</span> paginator.<span class="fn">paginate</span>():
+            <span class="kw">for</span> user <span class="kw">in</span> page[<span class="st">'Users'</span>]:
+                name = user[<span class="st">'UserName'</span>]
+                <span class="kw">try</span>:
+                    mfa      = iam.<span class="fn">list_mfa_devices</span>(UserName=name)[<span class="st">'MFADevices'</span>]
+                    keys     = iam.<span class="fn">list_access_keys</span>(UserName=name)[<span class="st">'AccessKeyMetadata'</span>]
+                    groups   = iam.<span class="fn">list_groups_for_user</span>(UserName=name)[<span class="st">'Groups'</span>]
+                    policies = iam.<span class="fn">list_attached_user_policies</span>(UserName=name)[<span class="st">'AttachedPolicies'</span>]
+                    pwd_used = user.<span class="fn">get</span>(<span class="st">'PasswordLastUsed'</span>)
+                    evidence[<span class="st">'users'</span>].<span class="fn">append</span>({
+                        <span class="st">'username'</span>:         name,
+                        <span class="st">'user_id'</span>:          user[<span class="st">'UserId'</span>],
+                        <span class="st">'arn'</span>:              user[<span class="st">'Arn'</span>],
+                        <span class="st">'created_date'</span>:     user[<span class="st">'CreateDate'</span>].<span class="fn">isoformat</span>(),
+                        <span class="st">'password_last_used'</span>: pwd_used.<span class="fn">isoformat</span>() <span class="kw">if</span> pwd_used <span class="kw">else</span> <span class="kw">None</span>,
+                        <span class="st">'mfa_enabled'</span>:      <span class="fn">len</span>(mfa) &gt; <span class="nm">0</span>,
+                        <span class="st">'mfa_devices'</span>:      [{<span class="st">'serial'</span>: d[<span class="st">'SerialNumber'</span>]} <span class="kw">for</span> d <span class="kw">in</span> mfa],
+                        <span class="st">'access_keys'</span>:      [{<span class="st">'key_id'</span>: k[<span class="st">'AccessKeyId'</span>], <span class="st">'status'</span>: k[<span class="st">'Status'</span>], <span class="st">'created'</span>: k[<span class="st">'CreateDate'</span>].<span class="fn">isoformat</span>()} <span class="kw">for</span> k <span class="kw">in</span> keys],
+                        <span class="st">'groups'</span>:           [g[<span class="st">'GroupName'</span>] <span class="kw">for</span> g <span class="kw">in</span> groups],
+                        <span class="st">'attached_policies'</span>: [p[<span class="st">'PolicyName'</span>] <span class="kw">for</span> p <span class="kw">in</span> policies],
+                    })
+                <span class="kw">except</span> Exception <span class="kw">as</span> e:
+                    <span class="fn">print</span>(<span class="st">f"  Warning: Could not collect data for user {name}: {e}"</span>)
+        evidence[<span class="st">'summary'</span>] = {
+            <span class="st">'total_users'</span>:        <span class="fn">len</span>(evidence[<span class="st">'users'</span>]),
+            <span class="st">'users_with_mfa'</span>:     <span class="fn">sum</span>(<span class="nm">1</span> <span class="kw">for</span> u <span class="kw">in</span> evidence[<span class="st">'users'</span>] <span class="kw">if</span> u[<span class="st">'mfa_enabled'</span>]),
+            <span class="st">'users_without_mfa'</span>:  <span class="fn">sum</span>(<span class="nm">1</span> <span class="kw">for</span> u <span class="kw">in</span> evidence[<span class="st">'users'</span>] <span class="kw">if</span> <span class="kw">not</span> u[<span class="st">'mfa_enabled'</span>]),
+            <span class="st">'users_with_keys'</span>:    <span class="fn">sum</span>(<span class="nm">1</span> <span class="kw">for</span> u <span class="kw">in</span> evidence[<span class="st">'users'</span>] <span class="kw">if</span> u[<span class="st">'access_keys'</span>]),
+        }
+        <span class="fn">print</span>(<span class="st">f"  Collected evidence for {evidence['summary']['total_users']} IAM users"</span>)
+        <span class="kw">return</span> evidence
+
+    <span class="kw">def</span> <span class="fn">collect_encryption_evidence</span>(self) -&gt; Dict[str, Any]:
+        <span class="st">"""CC6.7 — Encryption at rest for S3, RDS, EBS."""</span>
+        <span class="fn">print</span>(<span class="st">"Collecting encryption evidence..."</span>)
+        evidence = {
+            <span class="st">'collection_timestamp'</span>: self.timestamp,
+            <span class="st">'account_id'</span>: self.account_id,
+            <span class="st">'region'</span>: self.region,
+            <span class="st">'control_mapping'</span>: [<span class="st">'CC6.7'</span>],
+            <span class="st">'s3_buckets'</span>: [], <span class="st">'rds_instances'</span>: [], <span class="st">'ebs_volumes'</span>: []
+        }
+        <span class="cm"># S3</span>
+        s3 = self.session.<span class="fn">client</span>(<span class="st">'s3'</span>)
+        <span class="kw">for</span> b <span class="kw">in</span> s3.<span class="fn">list_buckets</span>()[<span class="st">'Buckets'</span>]:
+            <span class="kw">try</span>:
+                enc  = s3.<span class="fn">get_bucket_encryption</span>(Bucket=b[<span class="st">'Name'</span>])
+                algo = enc[<span class="st">'ServerSideEncryptionConfiguration'</span>][<span class="st">'Rules'</span>][<span class="nm">0</span>][<span class="st">'ApplyServerSideEncryptionByDefault'</span>][<span class="st">'SSEAlgorithm'</span>]
+                evidence[<span class="st">'s3_buckets'</span>].<span class="fn">append</span>({<span class="st">'bucket_name'</span>: b[<span class="st">'Name'</span>], <span class="st">'encrypted'</span>: <span class="kw">True</span>, <span class="st">'encryption_type'</span>: algo})
+            <span class="kw">except</span>:
+                evidence[<span class="st">'s3_buckets'</span>].<span class="fn">append</span>({<span class="st">'bucket_name'</span>: b[<span class="st">'Name'</span>], <span class="st">'encrypted'</span>: <span class="kw">False</span>, <span class="st">'encryption_type'</span>: <span class="kw">None</span>})
+        <span class="cm"># RDS</span>
+        rds = self.session.<span class="fn">client</span>(<span class="st">'rds'</span>)
+        <span class="kw">for</span> page <span class="kw">in</span> rds.<span class="fn">get_paginator</span>(<span class="st">'describe_db_instances'</span>).<span class="fn">paginate</span>():
+            <span class="kw">for</span> inst <span class="kw">in</span> page[<span class="st">'DBInstances'</span>]:
+                evidence[<span class="st">'rds_instances'</span>].<span class="fn">append</span>({
+                    <span class="st">'db_instance_identifier'</span>: inst[<span class="st">'DBInstanceIdentifier'</span>],
+                    <span class="st">'engine'</span>:   inst[<span class="st">'Engine'</span>],
+                    <span class="st">'encrypted'</span>: inst.<span class="fn">get</span>(<span class="st">'StorageEncrypted'</span>, <span class="kw">False</span>),
+                    <span class="st">'kms_key_id'</span>: inst.<span class="fn">get</span>(<span class="st">'KmsKeyId'</span>),
+                })
+        <span class="cm"># EBS</span>
+        ec2 = self.session.<span class="fn">client</span>(<span class="st">'ec2'</span>)
+        <span class="kw">for</span> page <span class="kw">in</span> ec2.<span class="fn">get_paginator</span>(<span class="st">'describe_volumes'</span>).<span class="fn">paginate</span>():
+            <span class="kw">for</span> vol <span class="kw">in</span> page[<span class="st">'Volumes'</span>]:
+                evidence[<span class="st">'ebs_volumes'</span>].<span class="fn">append</span>({
+                    <span class="st">'volume_id'</span>: vol[<span class="st">'VolumeId'</span>],
+                    <span class="st">'size_gb'</span>:   vol[<span class="st">'Size'</span>],
+                    <span class="st">'encrypted'</span>: vol[<span class="st">'Encrypted'</span>],
+                    <span class="st">'kms_key_id'</span>: vol.<span class="fn">get</span>(<span class="st">'KmsKeyId'</span>),
+                })
+        evidence[<span class="st">'summary'</span>] = {
+            <span class="st">'s3_encrypted'</span>:   <span class="fn">sum</span>(<span class="nm">1</span> <span class="kw">for</span> b <span class="kw">in</span> evidence[<span class="st">'s3_buckets'</span>]    <span class="kw">if</span> b[<span class="st">'encrypted'</span>]),
+            <span class="st">'rds_encrypted'</span>:  <span class="fn">sum</span>(<span class="nm">1</span> <span class="kw">for</span> r <span class="kw">in</span> evidence[<span class="st">'rds_instances'</span>] <span class="kw">if</span> r[<span class="st">'encrypted'</span>]),
+            <span class="st">'ebs_encrypted'</span>:  <span class="fn">sum</span>(<span class="nm">1</span> <span class="kw">for</span> v <span class="kw">in</span> evidence[<span class="st">'ebs_volumes'</span>]    <span class="kw">if</span> v[<span class="st">'encrypted'</span>]),
+        }
+        <span class="kw">return</span> evidence
+
+    <span class="kw">def</span> <span class="fn">collect_cloudtrail_evidence</span>(self) -&gt; Dict[str, Any]:
+        <span class="st">"""CC7.2 — CloudTrail logging configuration."""</span>
+        <span class="fn">print</span>(<span class="st">"Collecting CloudTrail evidence..."</span>)
+        ct = self.session.<span class="fn">client</span>(<span class="st">'cloudtrail'</span>)
+        trails = []
+        <span class="kw">for</span> t <span class="kw">in</span> ct.<span class="fn">describe_trails</span>()[<span class="st">'trailList'</span>]:
+            status = ct.<span class="fn">get_trail_status</span>(Name=t[<span class="st">'Name'</span>])
+            trails.<span class="fn">append</span>({
+                <span class="st">'name'</span>:                      t[<span class="st">'Name'</span>],
+                <span class="st">'s3_bucket'</span>:                 t.<span class="fn">get</span>(<span class="st">'S3BucketName'</span>),
+                <span class="st">'is_multi_region'</span>:           t.<span class="fn">get</span>(<span class="st">'IsMultiRegionTrail'</span>, <span class="kw">False</span>),
+                <span class="st">'is_logging'</span>:                status.<span class="fn">get</span>(<span class="st">'IsLogging'</span>, <span class="kw">False</span>),
+                <span class="st">'log_file_validation_enabled'</span>: t.<span class="fn">get</span>(<span class="st">'LogFileValidationEnabled'</span>, <span class="kw">False</span>),
+            })
+        <span class="kw">return</span> {<span class="st">'trails'</span>: trails, <span class="st">'control_mapping'</span>: [<span class="st">'CC7.2'</span>],
+                <span class="st">'summary'</span>: {<span class="st">'total_trails'</span>: <span class="fn">len</span>(trails),
+                            <span class="st">'logging_enabled'</span>: <span class="fn">sum</span>(<span class="nm">1</span> <span class="kw">for</span> t <span class="kw">in</span> trails <span class="kw">if</span> t[<span class="st">'is_logging'</span>])}}
+
+    <span class="kw">def</span> <span class="fn">collect_cloudwatch_evidence</span>(self) -&gt; Dict[str, Any]:
+        <span class="st">"""CC7.3 — CloudWatch alarms and log groups."""</span>
+        <span class="fn">print</span>(<span class="st">"Collecting CloudWatch evidence..."</span>)
+        cw   = self.session.<span class="fn">client</span>(<span class="st">'cloudwatch'</span>)
+        logs = self.session.<span class="fn">client</span>(<span class="st">'logs'</span>)
+        alarms, log_groups = [], []
+        <span class="kw">for</span> page <span class="kw">in</span> cw.<span class="fn">get_paginator</span>(<span class="st">'describe_alarms'</span>).<span class="fn">paginate</span>():
+            <span class="kw">for</span> a <span class="kw">in</span> page[<span class="st">'MetricAlarms'</span>]:
+                alarms.<span class="fn">append</span>({<span class="st">'alarm_name'</span>: a[<span class="st">'AlarmName'</span>], <span class="st">'state'</span>: a[<span class="st">'StateValue'</span>],
+                               <span class="st">'actions_enabled'</span>: a.<span class="fn">get</span>(<span class="st">'ActionsEnabled'</span>, <span class="kw">False</span>)})
+        <span class="kw">for</span> page <span class="kw">in</span> logs.<span class="fn">get_paginator</span>(<span class="st">'describe_log_groups'</span>).<span class="fn">paginate</span>():
+            <span class="kw">for</span> lg <span class="kw">in</span> page[<span class="st">'logGroups'</span>]:
+                log_groups.<span class="fn">append</span>({<span class="st">'name'</span>: lg[<span class="st">'logGroupName'</span>], <span class="st">'retention_days'</span>: lg.<span class="fn">get</span>(<span class="st">'retentionInDays'</span>)})
+        <span class="kw">return</span> {<span class="st">'alarms'</span>: alarms, <span class="st">'log_groups'</span>: log_groups, <span class="st">'control_mapping'</span>: [<span class="st">'CC7.3'</span>],
+                <span class="st">'summary'</span>: {<span class="st">'total_alarms'</span>: <span class="fn">len</span>(alarms), <span class="st">'total_log_groups'</span>: <span class="fn">len</span>(log_groups)}}
+
+    <span class="kw">def</span> <span class="fn">export_json</span>(self, evidence: Dict, output_dir: str):
+        os.<span class="fn">makedirs</span>(output_dir, exist_ok=<span class="kw">True</span>)
+        safe_ts = self.timestamp.<span class="fn">replace</span>(<span class="st">':'</span>, <span class="st">'-'</span>).<span class="fn">replace</span>(<span class="st">'.'</span>, <span class="st">'-'</span>)
+        path = os.path.<span class="fn">join</span>(output_dir, <span class="st">f'aws_evidence_{safe_ts}.json'</span>)
+        <span class="kw">with</span> <span class="fn">open</span>(path, <span class="st">'w'</span>) <span class="kw">as</span> f:
+            json.<span class="fn">dump</span>(evidence, f, indent=<span class="nm">2</span>, default=str)
+        <span class="fn">print</span>(<span class="st">f"JSON exported to: {path}"</span>)
+        <span class="kw">return</span> path
+
+
+<span class="kw">def</span> <span class="fn">main</span>():
+    parser = argparse.<span class="fn">ArgumentParser</span>(description=<span class="st">'AWS SOC 2 Evidence Collector'</span>)
+    parser.<span class="fn">add_argument</span>(<span class="st">'--profile'</span>, help=<span class="st">'AWS profile name'</span>)
+    parser.<span class="fn">add_argument</span>(<span class="st">'--region'</span>,  default=<span class="st">'us-east-1'</span>)
+    parser.<span class="fn">add_argument</span>(<span class="st">'--output'</span>,  default=<span class="st">'./evidence'</span>)
+    parser.<span class="fn">add_argument</span>(<span class="st">'--format'</span>,  choices=[<span class="st">'json'</span>, <span class="st">'csv'</span>, <span class="st">'both'</span>], default=<span class="st">'json'</span>)
+    args = parser.<span class="fn">parse_args</span>()
+
+    collector = <span class="fn">AWSEvidenceCollector</span>(profile=args.profile, region=args.region)
+    <span class="fn">print</span>(<span class="st">f"Authenticated as Account: {collector.account_id}"</span>)
+
+    evidence = {
+        <span class="st">'metadata'</span>:   {<span class="st">'collection_timestamp'</span>: collector.timestamp, <span class="st">'account_id'</span>: collector.account_id,
+                       <span class="st">'region'</span>: collector.region, <span class="st">'collector_version'</span>: <span class="st">'1.0'</span>},
+        <span class="st">'iam'</span>:        collector.<span class="fn">collect_iam_evidence</span>(),
+        <span class="st">'encryption'</span>: collector.<span class="fn">collect_encryption_evidence</span>(),
+        <span class="st">'logging'</span>:    collector.<span class="fn">collect_cloudtrail_evidence</span>(),
+        <span class="st">'monitoring'</span>: collector.<span class="fn">collect_cloudwatch_evidence</span>(),
+    }
+
+    <span class="kw">if</span> args.format <span class="kw">in</span> [<span class="st">'json'</span>, <span class="st">'both'</span>]:
+        collector.<span class="fn">export_json</span>(evidence, args.output)
+    <span class="fn">print</span>(<span class="st">"Evidence collection complete!"</span>)
+
+
+<span class="kw">if</span> __name__ == <span class="st">'__main__'</span>:
+    <span class="fn">exit</span>(<span class="fn">main</span>())
+</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IAM policy source (separate card) -->
+    <div class="card" id="iampolicy">
+      <div class="card-header"><span class="icon">🔑</span><h3>iam-policy.json — Full Source</h3></div>
+      <div class="card-body" style="padding:0">
+        <div class="code-wrap" style="border-radius:0;margin:0">
+          <div class="code-topbar"><span>iam-policy.json</span><span class="lang-pill">JSON</span></div>
+          <div class="code-body"><pre>{
+  <span class="json-key">"Version"</span>: <span class="json-str">"2012-10-17"</span>,
+  <span class="json-key">"Statement"</span>: [
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"IAMReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [
+        <span class="json-str">"iam:ListUsers"</span>, <span class="json-str">"iam:ListMFADevices"</span>, <span class="json-str">"iam:ListAccessKeys"</span>,
+        <span class="json-str">"iam:ListGroupsForUser"</span>, <span class="json-str">"iam:ListAttachedUserPolicies"</span>, <span class="json-str">"iam:ListUserPolicies"</span>
+      ],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"S3ReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [<span class="json-str">"s3:ListAllMyBuckets"</span>, <span class="json-str">"s3:GetBucketEncryption"</span>],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"RDSReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [<span class="json-str">"rds:DescribeDBInstances"</span>],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"EC2ReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [<span class="json-str">"ec2:DescribeVolumes"</span>],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"CloudTrailReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [<span class="json-str">"cloudtrail:DescribeTrails"</span>, <span class="json-str">"cloudtrail:GetTrailStatus"</span>, <span class="json-str">"cloudtrail:GetEventSelectors"</span>],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"CloudWatchReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [<span class="json-str">"cloudwatch:DescribeAlarms"</span>, <span class="json-str">"logs:DescribeLogGroups"</span>],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    },
+    {
+      <span class="json-key">"Sid"</span>: <span class="json-str">"STSReadAccess"</span>,
+      <span class="json-key">"Effect"</span>: <span class="json-str">"Allow"</span>,
+      <span class="json-key">"Action"</span>: [<span class="json-str">"sts:GetCallerIdentity"</span>],
+      <span class="json-key">"Resource"</span>: <span class="json-str">"*"</span>
+    }
+  ]
+}</pre></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="card" id="troubleshoot">
+      <div class="card-header"><span class="icon">🔧</span><h3>Troubleshooting</h3></div>
+      <div class="card-body">
+        <div class="trouble-item">
+          <div class="trouble-q" onclick="toggleTrouble(this)"><span>❌ "Failed to initialize AWS session" or "Unable to locate credentials"</span><span>▶</span></div>
+          <div class="trouble-a">
+            <strong>Cause:</strong> AWS credentials not configured or profile not found.<br><br>
+            <strong>Fix:</strong> Run <code>aws configure --profile your-profile</code> or check <code>~/.aws/credentials</code> contains the specified profile. Try without <code>--profile</code> to use default credentials.
+          </div>
+        </div>
+        <div class="trouble-item">
+          <div class="trouble-q" onclick="toggleTrouble(this)"><span>❌ "AccessDenied when calling X operation"</span><span>▶</span></div>
+          <div class="trouble-a">
+            <strong>Cause:</strong> IAM user/role lacks a required permission.<br><br>
+            <strong>Fix:</strong> Verify the IAM policy from <code>iam-policy.json</code> is attached to your user/role. Check with <code>aws iam list-attached-user-policies --user-name your-user</code>. The error message names the exact action needed.
+          </div>
+        </div>
+        <div class="trouble-item">
+          <div class="trouble-q" onclick="toggleTrouble(this)"><span>⚠️ "Warning: Could not collect X evidence"</span><span>▶</span></div>
+          <div class="trouble-a">
+            <strong>Cause:</strong> Service not enabled, region has no resources, or partial permissions.<br><br>
+            <strong>Impact:</strong> Script continues — this is informational only. Check if the service is enabled in your account and that the region has resources (e.g. <code>aws s3 ls</code>).
+          </div>
+        </div>
+        <div class="trouble-item">
+          <div class="trouble-q" onclick="toggleTrouble(this)"><span>❌ "No module named 'boto3'"</span><span>▶</span></div>
+          <div class="trouble-a">
+            <strong>Fix:</strong> Run <code>pip install -r requirements.txt</code>. If using a virtual environment, activate it first: <code>source venv/bin/activate</code> (Linux/Mac) or <code>venv\Scripts\activate</code> (Windows).
+          </div>
+        </div>
+        <div class="trouble-item">
+          <div class="trouble-q" onclick="toggleTrouble(this)"><span>🐢 Script runs slowly on large accounts</span><span>▶</span></div>
+          <div class="trouble-a">
+            <strong>Cause:</strong> Account has thousands of IAM users, S3 buckets, or EBS volumes. The script uses pagination — this is expected.<br><br>
+            <strong>Tips:</strong> Run during off-hours. For accounts with 10,000+ resources, expect 5–10 minutes. Consider AWS Audit Manager for continuous collection at scale.
+          </div>
+        </div>
+        <div class="trouble-item">
+          <div class="trouble-q" onclick="toggleTrouble(this)"><span>⚠️ "Rate exceeded" errors</span><span>▶</span></div>
+          <div class="trouble-a">
+            <strong>Cause:</strong> Too many API calls in a short period (AWS throttling).<br><br>
+            <strong>Fix:</strong> Wait a few minutes and retry. Run the script less frequently. Use AWS Audit Manager for continuous compliance monitoring instead.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Limitations -->
+    <div class="card" id="limitations">
+      <div class="card-header"><span class="icon">⚠️</span><h3>Limitations</h3></div>
+      <div class="card-body">
+        <div class="info-box amber"><span class="ico">⚠️</span><div><strong>This script does NOT collect:</strong> application logs, VPC Flow Logs, AWS Config rules, Security Hub findings, GuardDuty findings, or IAM Access Analyzer findings. Use dedicated AWS APIs or AWS Audit Manager for those.</div></div>
+
+        <h4 style="font-size:14px;font-weight:700;margin:20px 0 10px">When to use AWS Audit Manager instead</h4>
+        <table>
+          <thead><tr><th>Need</th><th>This Script</th><th>AWS Audit Manager</th></tr></thead>
+          <tbody>
+            <tr><td>Ad-hoc evidence collection during audit prep</td><td class="pass">✓ Best fit</td><td>Overkill</td></tr>
+            <tr><td>Custom evidence not in Audit Manager</td><td class="pass">✓ Best fit</td><td>Limited</td></tr>
+            <tr><td>Learning SOC 2 AWS requirements</td><td class="pass">✓ Best fit</td><td>Less transparent</td></tr>
+            <tr><td>Continuous multi-account monitoring</td><td class="fail">Not designed for this</td><td class="pass">✓ Best fit</td></tr>
+            <tr><td>Automated scheduled collection</td><td class="warn">Manual / cron only</td><td class="pass">✓ Built-in</td></tr>
+            <tr><td>Auditor collaboration portal</td><td class="fail">Not available</td><td class="pass">✓ Built-in</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<script>
+  function goto(id) {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    event.currentTarget.classList.add('active');
+  }
+
+  function toggleSection(id, btn) {
+    const el = document.getElementById(id);
+    el.classList.toggle('open');
+    btn.classList.toggle('open');
+    btn.querySelector('.arrow').textContent = el.classList.contains('open') ? '▼' : '▶';
+  }
+
+  function toggleTrouble(el) {
+    const ans = el.nextElementSibling;
+    ans.classList.toggle('open');
+    el.querySelector('span:last-child').textContent = ans.classList.contains('open') ? '▼' : '▶';
+  }
+
+  function copyCode(id) {
+    const el = document.getElementById(id);
+    const text = el.innerText || el.textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = event.currentTarget;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+</script>
+</body>
+</html>
