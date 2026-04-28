@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GRC Templates Viewer</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f5f6fa;
+      --surface: #ffffff;
+      --border: #e2e6ea;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --text: #1e293b;
+      --muted: #64748b;
+      --tag-bg: #eff6ff;
+      --tag-text: #1d4ed8;
+      --var-bg: #fef9c3;
+      --var-border: #fbbf24;
+      --table-head: #f1f5f9;
+      --code: #f8fafc;
+      --sidebar-w: 260px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    #sidebar {
+      width: var(--sidebar-w);
+      min-width: var(--sidebar-w);
+      background: #1e293b;
+      color: #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+
+    #sidebar-header {
+      padding: 24px 20px 16px;
+      border-bottom: 1px solid #334155;
+    }
+
+    #sidebar-header h1 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    #sidebar-header p {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 4px;
+    }
+
+    .nav-section {
+      padding: 12px 12px 4px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #475569;
+    }
+
+    .nav-item {
+      display: block;
+      padding: 9px 20px;
+      font-size: 13px;
+      color: #94a3b8;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all .15s;
+      text-decoration: none;
+    }
+
+    .nav-item:hover { background: #273549; color: #e2e8f0; }
+
+    .nav-item.active {
+      background: #273549;
+      color: #f1f5f9;
+      border-left-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .nav-sub {
+      padding: 6px 20px 6px 32px;
+      font-size: 12px;
+      color: #64748b;
+      cursor: pointer;
+      transition: color .15s;
+      display: block;
+      text-decoration: none;
+    }
+
+    .nav-sub:hover { color: #94a3b8; }
+
+    /* ── Main content ── */
+    #main {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    /* ── Top bar ── */
+    #topbar {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex;
+      gap: 0;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .tab {
+      padding: 16px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+
+    .tab:hover { color: var(--text); }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    /* ── Document panel ── */
+    .doc-panel {
+      display: none;
+      padding: 40px 48px 80px;
+      max-width: 980px;
+    }
+
+    .doc-panel.active { display: block; }
+
+    /* ── Meta header ── */
+    .doc-meta {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin-bottom: 32px;
+    }
+
+    .doc-meta h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-blue  { background: #dbeafe; color: #1e40af; }
+    .badge-green { background: #dcfce7; color: #166534; }
+    .badge-amber { background: #fef3c7; color: #92400e; }
+    .badge-slate { background: #f1f5f9; color: #475569; }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 12px 24px;
+      font-size: 13px;
+    }
+
+    .meta-item label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+    .meta-item span  { font-weight: 500; }
+
+    /* ── Variables section ── */
+    .vars-section {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 32px;
+    }
+
+    .vars-section h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: #92400e;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .vars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 10px;
+    }
+
+    .var-item {
+      background: #fff;
+      border: 1px solid #fde68a;
+      border-radius: 6px;
+      padding: 10px 14px;
+    }
+
+    .var-name {
+      font-family: "Cascadia Code", "Fira Code", "Consolas", monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: #b45309;
+      margin-bottom: 3px;
+    }
+
+    .var-desc { font-size: 12px; color: #78716c; }
+    .var-req  { font-size: 11px; color: #dc2626; font-weight: 600; }
+    .var-opt  { font-size: 11px; color: #64748b; }
+
+    /* ── Article body ── */
+    .article {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 36px 40px;
+    }
+
+    .article h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 28px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    .article h2 {
+      font-size: 19px;
+      font-weight: 700;
+      margin: 36px 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+      color: #0f172a;
+    }
+
+    .article h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin: 24px 0 10px;
+      color: #1e293b;
+    }
+
+    .article h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin: 18px 0 8px;
+      color: #334155;
+    }
+
+    .article p {
+      font-size: 14px;
+      line-height: 1.75;
+      color: #334155;
+      margin-bottom: 14px;
+    }
+
+    .article ul, .article ol {
+      margin: 10px 0 16px 22px;
+    }
+
+    .article li {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #334155;
+      margin-bottom: 4px;
+    }
+
+    .article li strong { color: #1e293b; }
+
+    /* tables */
+    .article table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 13px;
+    }
+
+    .article thead tr {
+      background: var(--table-head);
+    }
+
+    .article th {
+      text-align: left;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: 12px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      border: 1px solid var(--border);
+    }
+
+    .article td {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      vertical-align: top;
+      line-height: 1.6;
+    }
+
+    .article tr:nth-child(even) td { background: #f8fafc; }
+
+    /* variable placeholders */
+    .var-placeholder {
+      display: inline-block;
+      background: var(--var-bg);
+      border: 1px dashed var(--var-border);
+      border-radius: 4px;
+      padding: 0 6px;
+      font-family: "Cascadia Code", "Fira Code", monospace;
+      font-size: .85em;
+      color: #b45309;
+      cursor: pointer;
+    }
+
+    .var-placeholder:hover { background: #fef08a; }
+
+    /* horizontal rule */
+    .article hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 32px 0;
+    }
+
+    /* blockquote */
+    .article blockquote {
+      border-left: 4px solid #bfdbfe;
+      background: #eff6ff;
+      padding: 12px 18px;
+      border-radius: 0 6px 6px 0;
+      margin: 16px 0;
+      font-size: 14px;
+      color: #1e40af;
+    }
+
+    /* risk badges in tables */
+    .risk-critical { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .risk-high     { background: #ffedd5; color: #9a3412; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .risk-medium   { background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+    .risk-low      { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+
+    /* search */
+    #search-wrap {
+      padding: 12px;
+      border-bottom: 1px solid #334155;
+    }
+
+    #search {
+      width: 100%;
+      background: #273549;
+      border: 1px solid #334155;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 12px;
+      color: #e2e8f0;
+      outline: none;
+    }
+
+    #search::placeholder { color: #475569; }
+    #search:focus { border-color: #3b82f6; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    @media (max-width: 768px) {
+      #sidebar { display: none; }
+      .doc-panel { padding: 20px 16px 60px; }
+      .article { padding: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<nav id="sidebar">
+  <div id="sidebar-header">
+    <h1>GRC Templates</h1>
+    <p>awesome-grc-ai · v1.0</p>
+  </div>
+  <div id="search-wrap">
+    <input id="search" type="search" placeholder="Search templates…" oninput="filterNav(this.value)" />
+  </div>
+
+  <div class="nav-section">Templates</div>
+  <a class="nav-item active" onclick="switchTab(0)" data-idx="0">📋 AI Acceptable Use Policy</a>
+  <a class="nav-sub" onclick="scrollTo('aup-s1')">1. Purpose &amp; Scope</a>
+  <a class="nav-sub" onclick="scrollTo('aup-s2')">2. Definitions</a>
+  <a class="nav-sub" onclick="scrollTo('aup-s3')">3. Governance</a>
+  <a class="nav-sub" onclick="scrollTo('aup-s4')">4. Approved Tools</a>
+  <a class="nav-sub" onclick="scrollTo('aup-s5')">5. Acceptable Use</a>
+  <a class="nav-sub" onclick="scrollTo('aup-s6')">6. Data Protection</a>
+  <a class="nav-sub" onclick="scrollTo('aup-s9')">9. Training</a>
+
+  <a class="nav-item" onclick="switchTab(1)" data-idx="1">⚠️ AI Risk Assessment Framework</a>
+  <a class="nav-sub" onclick="switchTab(1);scrollTo('raf-s1')">1. Purpose &amp; Scope</a>
+  <a class="nav-sub" onclick="switchTab(1);scrollTo('raf-s2')">2. Risk Governance</a>
+  <a class="nav-sub" onclick="switchTab(1);scrollTo('raf-s4')">4. Risk Identification</a>
+  <a class="nav-sub" onclick="switchTab(1);scrollTo('raf-s5')">5. Assessment Process</a>
+  <a class="nav-sub" onclick="switchTab(1);scrollTo('raf-s6')">6. Risk Mitigation</a>
+  <a class="nav-sub" onclick="switchTab(1);scrollTo('raf-appendix')">Appendix A: Questionnaire</a>
+
+  <a class="nav-item" onclick="switchTab(2)" data-idx="2">🔄 Model Dev Lifecycle</a>
+  <a class="nav-sub" onclick="switchTab(2);scrollTo('mdl-s2')">Lifecycle Overview</a>
+  <a class="nav-sub" onclick="switchTab(2);scrollTo('mdl-s3')">Stage 1: Problem Definition</a>
+  <a class="nav-sub" onclick="switchTab(2);scrollTo('mdl-s4')">Stage 2: Data Preparation</a>
+  <a class="nav-sub" onclick="switchTab(2);scrollTo('mdl-s5')">Stage 3: Development</a>
+  <a class="nav-sub" onclick="switchTab(2);scrollTo('mdl-s6')">Stage 4: Validation</a>
+  <a class="nav-sub" onclick="switchTab(2);scrollTo('mdl-s7')">Stage 5: Deployment</a>
+  <a class="nav-sub" onclick="switchTab(2);scrollTo('mdl-s8')">Stage 6: Monitoring</a>
+  <a class="nav-sub" onclick="switchTab(2);scrollTo('mdl-s9')">Stage 7: Retirement</a>
+</nav>
+
+<!-- ══ MAIN ══ -->
+<div id="main">
+
+  <!-- Tab bar -->
+  <div id="topbar">
+    <div class="tab active" onclick="switchTab(0)">AI Acceptable Use Policy</div>
+    <div class="tab" onclick="switchTab(1)">AI Risk Assessment Framework</div>
+    <div class="tab" onclick="switchTab(2)">Model Development Lifecycle</div>
+  </div>
+
+  <!-- ════════════════════════════════════
+       PANEL 0 — AI ACCEPTABLE USE POLICY
+  ════════════════════════════════════ -->
+  <div class="doc-panel active" id="panel-0">
+
+    <div class="doc-meta">
+      <h2>AI Acceptable Use Policy</h2>
+      <div class="meta-badges">
+        <span class="badge badge-blue">Policy</span>
+        <span class="badge badge-green">v1.0</span>
+        <span class="badge badge-amber">Intermediate · 2–4 hrs</span>
+        <span class="badge badge-slate">Updated 2026-01-27</span>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-item"><label>Framework</label><span>NIST AI RMF 1.0, ISO/IEC 42001:2023, EU AI Act</span></div>
+        <div class="meta-item"><label>Author</label><span>Community</span></div>
+        <div class="meta-item"><label>Complexity</label><span>Intermediate</span></div>
+      </div>
+    </div>
+
+    <div class="vars-section">
+      <h3>⚡ Template Variables — replace before use</h3>
+      <div class="vars-grid">
+        <div class="var-item"><div class="var-name">ORGANIZATION_NAME</div><div class="var-desc">Legal name of your organization</div><div class="var-req">Required · e.g. Acme Corporation</div></div>
+        <div class="var-item"><div class="var-name">EFFECTIVE_DATE</div><div class="var-desc">Date when policy becomes effective</div><div class="var-req">Required · e.g. 2026-03-01</div></div>
+        <div class="var-item"><div class="var-name">CLASSIFICATION</div><div class="var-desc">Document classification level</div><div class="var-req">Required · e.g. Internal</div></div>
+        <div class="var-item"><div class="var-name">POLICY_OWNER</div><div class="var-desc">Name and title of policy owner</div><div class="var-req">Required · e.g. Jane Smith, CIO</div></div>
+        <div class="var-item"><div class="var-name">APPROVER</div><div class="var-desc">Name and title of approving authority</div><div class="var-req">Required · e.g. John Doe, CEO</div></div>
+        <div class="var-item"><div class="var-name">AI_GOVERNANCE_EMAIL</div><div class="var-desc">Contact email for AI governance questions</div><div class="var-req">Required · e.g. ai-governance@acme.com</div></div>
+        <div class="var-item"><div class="var-name">APPROVED_AI_TOOLS_LIST_LOCATION</div><div class="var-desc">Where approved AI tools list is published</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">REVIEW_CYCLE</div><div class="var-desc">Frequency of policy review</div><div class="var-opt">Optional · e.g. Annually</div></div>
+        <div class="var-item"><div class="var-name">AI_GOVERNANCE_COMMITTEE</div><div class="var-desc">Name of AI governance committee</div><div class="var-opt">Optional</div></div>
+        <div class="var-item"><div class="var-name">TRAINING_PLATFORM</div><div class="var-desc">Training platform or LMS</div><div class="var-opt">Optional · e.g. internal LMS</div></div>
+        <div class="var-item"><div class="var-name">INCIDENT_REPORTING_SYSTEM</div><div class="var-desc">System for reporting violations</div><div class="var-opt">Optional · e.g. EthicsPoint</div></div>
+      </div>
+    </div>
+
+    <article class="article">
+      <h1>AI Acceptable Use Policy</h1>
+
+      <h2>Document Control</h2>
+      <table>
+        <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Organization</strong></td><td><span class="var-placeholder">{{ORGANIZATION_NAME}}</span></td></tr>
+          <tr><td><strong>Effective Date</strong></td><td><span class="var-placeholder">{{EFFECTIVE_DATE}}</span></td></tr>
+          <tr><td><strong>Version</strong></td><td>1.0</td></tr>
+          <tr><td><strong>Classification</strong></td><td><span class="var-placeholder">{{CLASSIFICATION}}</span></td></tr>
+          <tr><td><strong>Policy Owner</strong></td><td><span class="var-placeholder">{{POLICY_OWNER}}</span></td></tr>
+          <tr><td><strong>Approved By</strong></td><td><span class="var-placeholder">{{APPROVER}}</span></td></tr>
+          <tr><td><strong>Review Cycle</strong></td><td><span class="var-placeholder">{{REVIEW_CYCLE}}</span></td></tr>
+          <tr><td><strong>Last Updated</strong></td><td>2026-01-27</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="aup-s1">1. Purpose and Scope</h2>
+      <h3>1.1 Purpose</h3>
+      <p>This policy establishes guidelines for the acceptable use of Artificial Intelligence (AI) technologies within <span class="var-placeholder">{{ORGANIZATION_NAME}}</span>. The policy aims to:</p>
+      <ul>
+        <li>Enable productive and innovative use of AI tools while managing associated risks</li>
+        <li>Protect sensitive data, intellectual property, and confidential information</li>
+        <li>Ensure compliance with applicable laws, regulations, and ethical standards</li>
+        <li>Promote responsible AI use that aligns with organizational values and risk tolerance</li>
+        <li>Establish clear accountability for AI system deployment and usage</li>
+      </ul>
+
+      <h3>1.2 Scope</h3>
+      <p>This policy applies to:</p>
+      <ul>
+        <li><strong>Personnel:</strong> All employees, contractors, consultants, temporary staff, and third parties working on behalf of <span class="var-placeholder">{{ORGANIZATION_NAME}}</span></li>
+        <li><strong>AI Systems:</strong> Generative AI tools, LLMs and chatbots, ML models, AI-powered analytics, RPA with AI capabilities, computer vision and NLP systems</li>
+        <li><strong>Activities:</strong> Development, procurement, deployment, integration, and day-to-day use of AI systems</li>
+        <li><strong>Data:</strong> Any organizational or customer data used with AI systems</li>
+      </ul>
+
+      <h2 id="aup-s2">2. Definitions</h2>
+      <table>
+        <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Artificial Intelligence (AI)</strong></td><td>Systems demonstrating intelligent behavior by analyzing their environment to achieve specific goals. Includes ML, deep learning, NLP, and computer vision.</td></tr>
+          <tr><td><strong>Generative AI</strong></td><td>AI capable of generating new content (text, images, audio, video, code). Examples: ChatGPT, Claude, Midjourney, GitHub Copilot.</td></tr>
+          <tr><td><strong>Large Language Model (LLM)</strong></td><td>AI models trained on vast text data to understand and generate human-like text. A subset of Generative AI.</td></tr>
+          <tr><td><strong>Approved AI Tools</strong></td><td>AI systems that have completed <span class="var-placeholder">{{ORGANIZATION_NAME}}</span>'s approval process. See: <span class="var-placeholder">{{APPROVED_AI_TOOLS_LIST_LOCATION}}</span>.</td></tr>
+          <tr><td><strong>Sensitive Data</strong></td><td>Information requiring protection: PII, PHI, financial data, trade secrets, and Confidential/Restricted data under the Data Classification Policy.</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="aup-s3">3. Governance Structure</h2>
+      <h3>3.1 AI Governance Committee</h3>
+      <p><span class="var-placeholder">{{ORGANIZATION_NAME}}</span> maintains a <span class="var-placeholder">{{AI_GOVERNANCE_COMMITTEE}}</span> responsible for approving AI tools, reviewing risk assessments, establishing risk tolerance, monitoring incidents, and recommending policy updates.</p>
+      <p><strong>Composition:</strong> Representatives from Information Security, Legal, Compliance, Privacy, IT, Business Units, and Executive Leadership. <strong>Meeting Cadence:</strong> Quarterly, with ad-hoc meetings for urgent approvals or incident response.</p>
+
+      <h3>3.2 Roles and Responsibilities</h3>
+      <table>
+        <thead><tr><th>Role</th><th>Responsibilities</th></tr></thead>
+        <tbody>
+          <tr><td><strong>All Personnel</strong></td><td>Comply with policy; complete required AI training; use only approved tools; report violations; safeguard sensitive data.</td></tr>
+          <tr><td><strong>Managers</strong></td><td>Ensure team awareness; approve AI tool requests; monitor team AI usage; investigate violations.</td></tr>
+          <tr><td><strong>AI Governance Committee</strong></td><td>Review and approve tools and use cases; define risk thresholds; monitor policy effectiveness; recommend updates.</td></tr>
+          <tr><td><strong>Information Security</strong></td><td>Conduct AI security risk assessments; monitor tools for vulnerabilities; respond to AI-related incidents.</td></tr>
+          <tr><td><strong>Legal &amp; Compliance</strong></td><td>Assess regulatory and legal risks; review AI contracts; ensure compliance; advise on IP considerations.</td></tr>
+          <tr><td><strong>Policy Owner (<span class="var-placeholder">{{POLICY_OWNER}}</span>)</strong></td><td>Maintain and update this policy; coordinate reviews; serve as escalation point.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>3.3 Escalation Paths</h3>
+      <ul>
+        <li><strong>Standard AI Tool Request:</strong> Employee → Manager → AI Governance Committee</li>
+        <li><strong>Policy Violation Report:</strong> Reporter → Manager → AI Governance Committee → Legal/HR</li>
+        <li><strong>High-Risk AI Decision:</strong> Business Unit → AI Governance Committee → Executive Leadership</li>
+        <li><strong>AI-Related Incident:</strong> Discoverer → Information Security → AI Governance Committee → Executive Leadership</li>
+      </ul>
+
+      <h2 id="aup-s4">4. Approved AI Tools</h2>
+      <h3>4.1 Approval Process</h3>
+      <ol>
+        <li><strong>Check Approved Tools List</strong> at <span class="var-placeholder">{{APPROVED_AI_TOOLS_LIST_LOCATION}}</span></li>
+        <li><strong>Submit Request</strong> (if tool not approved) — include tool name, vendor, use case, data classification, business justification</li>
+        <li><strong>Risk Assessment</strong> — Information Security and Privacy assess data security, vendor posture, data residency, terms of service</li>
+        <li><strong>Committee Review</strong> — AI Governance Committee approves, denies, or approves with conditions</li>
+        <li><strong>Procurement</strong> — IT/Procurement negotiates contract with required security terms</li>
+        <li><strong>Communication</strong> — Approved tool added to tools list with approved use cases</li>
+      </ol>
+      <p><strong>Approval Timeline:</strong> Standard 15 business days; expedited 5 business days.</p>
+
+      <h3>4.2 Tool Risk Categories</h3>
+      <table>
+        <thead><tr><th>Category</th><th>Description</th><th>Approval</th></tr></thead>
+        <tbody>
+          <tr><td><span class="risk-low">Low Risk</span></td><td>Pre-approved for use with non-sensitive, public information only</td><td>Manager awareness only</td></tr>
+          <tr><td><span class="risk-medium">Medium Risk</span></td><td>Approved for specific use cases with defined data restrictions</td><td>Manager approval required</td></tr>
+          <tr><td><span class="risk-high">High Risk</span></td><td>Approved only for specific teams/projects with enhanced controls and monitoring</td><td>AI Governance Committee per use case</td></tr>
+        </tbody>
+      </table>
+
+      <h3>4.3 Prohibited AI Tools</h3>
+      <ul>
+        <li>Free/consumer versions of AI tools (e.g., free ChatGPT, free Bard) — use only enterprise versions</li>
+        <li>Tools from vendors lacking adequate security certifications or required contractual terms</li>
+        <li>Tools that train on customer data without opt-out</li>
+        <li>Tools hosted in prohibited geographic regions</li>
+        <li>Shadow AI tools procured without IT/Security approval</li>
+      </ul>
+
+      <h2 id="aup-s5">5. Acceptable Use Guidelines</h2>
+      <h3>5.1 Permitted Uses</h3>
+      <ul>
+        <li><strong>Content Creation:</strong> Drafting documents, editing, brainstorming, translation (non-sensitive)</li>
+        <li><strong>Code Development:</strong> Generating snippets, debugging, documenting code (approved tools only)</li>
+        <li><strong>Data Analysis:</strong> Analyzing non-sensitive datasets, generating reports, summarizing information</li>
+        <li><strong>Research and Learning:</strong> Researching topics, explaining complex concepts, learning new skills</li>
+        <li><strong>Process Automation:</strong> Automating repetitive tasks, classifying documents, extracting information</li>
+      </ul>
+
+      <h3>5.2 Prohibited Uses</h3>
+      <ul>
+        <li><strong>Sensitive Data Processing:</strong> Inputting PII, PHI, or trade secrets into non-approved tools</li>
+        <li><strong>Automated Decision-Making Without Review:</strong> Employment, loan, credit, medical decisions solely from AI</li>
+        <li><strong>Harmful Uses:</strong> Deepfakes, harassment content, security circumvention, malware creation</li>
+        <li><strong>Misrepresentation:</strong> Presenting AI content as human-created where disclosure is required</li>
+        <li><strong>IP Violations:</strong> Infringing copyrights, patents, trademarks; plagiarizing works</li>
+      </ul>
+
+      <h3>5.3 Output Review Requirements</h3>
+      <p>All AI-generated content must be: <strong>(1)</strong> reviewed by a human, <strong>(2)</strong> validated for accuracy, <strong>(3)</strong> checked for bias, <strong>(4)</strong> assessed for appropriateness, and <strong>(5)</strong> edited as needed.</p>
+      <blockquote>Personnel are accountable for content they use or distribute, regardless of whether it was AI-generated.</blockquote>
+
+      <h2 id="aup-s6">6. Data Protection Requirements</h2>
+      <table>
+        <thead><tr><th>Data Classification</th><th>AI Tool Use</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Public</strong></td><td>May be used with any approved AI tool</td></tr>
+          <tr><td><strong>Internal</strong></td><td>Approved tools with DPAs and no training on customer data</td></tr>
+          <tr><td><strong>Confidential</strong></td><td>Only high-security approved tools with enhanced encryption and audit logging</td></tr>
+          <tr><td><strong>Restricted</strong></td><td><span class="risk-critical">Prohibited</span> unless explicitly approved by AI Governance Committee with enhanced risk mitigation</td></tr>
+        </tbody>
+      </table>
+
+      <h2>7. Risk Management</h2>
+      <table>
+        <thead><tr><th>Risk Level</th><th>Approval Required</th></tr></thead>
+        <tbody>
+          <tr><td><span class="risk-low">Low</span></td><td>Manager approval only</td></tr>
+          <tr><td><span class="risk-medium">Medium</span></td><td>Manager + Privacy/Security review</td></tr>
+          <tr><td><span class="risk-high">High</span></td><td>AI Governance Committee approval</td></tr>
+          <tr><td><span class="risk-critical">Critical</span></td><td>AI Governance Committee + Executive Leadership approval</td></tr>
+        </tbody>
+      </table>
+
+      <h2>8. Compliance and Accountability</h2>
+      <h3>8.3 Consequences of Violations</h3>
+      <table>
+        <thead><tr><th>Offense</th><th>Consequence</th></tr></thead>
+        <tbody>
+          <tr><td>First offense (minor)</td><td>Retraining and documented warning</td></tr>
+          <tr><td>Repeated violations</td><td>Formal performance improvement plan</td></tr>
+          <tr><td>Serious violations (data breach, fraud, malicious use)</td><td>Termination and potential legal action</td></tr>
+          <tr><td>Unintentional violations</td><td>Corrective action and training</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="aup-s9">9. Training Requirements</h2>
+      <h3>9.1 Mandatory Training</h3>
+      <p>All personnel must complete "AI Acceptable Use" training <strong>upon hire</strong> (within 30 days), <strong>upon policy update</strong> (within 30 days), and as an <strong>annual refresh</strong>. Duration: ~30 minutes. Platform: <span class="var-placeholder">{{TRAINING_PLATFORM}}</span>.</p>
+
+      <h2>Contact Information</h2>
+      <ul>
+        <li><strong>Policy questions:</strong> <span class="var-placeholder">{{AI_GOVERNANCE_EMAIL}}</span> · Policy Owner: <span class="var-placeholder">{{POLICY_OWNER}}</span></li>
+        <li><strong>Tool approval requests:</strong> <span class="var-placeholder">{{APPROVED_AI_TOOLS_LIST_LOCATION}}</span></li>
+        <li><strong>Report violations:</strong> <span class="var-placeholder">{{INCIDENT_REPORTING_SYSTEM}}</span> or <span class="var-placeholder">{{AI_GOVERNANCE_EMAIL}}</span></li>
+      </ul>
+
+      <hr />
+      <h2>Document History</h2>
+      <table>
+        <thead><tr><th>Version</th><th>Date</th><th>Changes</th><th>Approved By</th></tr></thead>
+        <tbody>
+          <tr><td>1.0</td><td><span class="var-placeholder">{{EFFECTIVE_DATE}}</span></td><td>Initial policy release</td><td><span class="var-placeholder">{{APPROVER}}</span></td></tr>
+        </tbody>
+      </table>
+    </article>
+  </div><!-- /panel-0 -->
+
+
+  <!-- ════════════════════════════════════
+       PANEL 1 — AI RISK ASSESSMENT FRAMEWORK
+  ════════════════════════════════════ -->
+  <div class="doc-panel" id="panel-1">
+
+    <div class="doc-meta">
+      <h2>AI Risk Assessment Framework</h2>
+      <div class="meta-badges">
+        <span class="badge badge-blue">Framework</span>
+        <span class="badge badge-green">v1.0</span>
+        <span class="badge badge-amber">Advanced · 4–6 hrs</span>
+        <span class="badge badge-slate">Updated 2026-01-27</span>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-item"><label>Framework</label><span>NIST AI RMF 1.0, ISO/IEC 42001:2023, EU AI Act</span></div>
+        <div class="meta-item"><label>Author</label><span>Community</span></div>
+      </div>
+    </div>
+
+    <div class="vars-section">
+      <h3>⚡ Template Variables — replace before use</h3>
+      <div class="vars-grid">
+        <div class="var-item"><div class="var-name">ORGANIZATION_NAME</div><div class="var-desc">Legal name of your organization</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">EFFECTIVE_DATE</div><div class="var-desc">Date when framework becomes effective</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">CLASSIFICATION</div><div class="var-desc">Document classification level</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">FRAMEWORK_OWNER</div><div class="var-desc">Name and title of framework owner</div><div class="var-req">Required · e.g. Jane Smith, CRO</div></div>
+        <div class="var-item"><div class="var-name">APPROVER</div><div class="var-desc">Approving authority</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">RISK_COMMITTEE</div><div class="var-desc">Name of risk oversight committee</div><div class="var-opt">Optional</div></div>
+        <div class="var-item"><div class="var-name">RISK_REGISTER_LOCATION</div><div class="var-desc">Where AI risk register is maintained</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">RISK_TOLERANCE_CRITICAL</div><div class="var-desc">Threshold for critical risk (0–100)</div><div class="var-opt">Optional · e.g. 80</div></div>
+        <div class="var-item"><div class="var-name">RISK_TOLERANCE_HIGH</div><div class="var-desc">Threshold for high risk (0–100)</div><div class="var-opt">Optional · e.g. 60</div></div>
+        <div class="var-item"><div class="var-name">RISK_TOLERANCE_MEDIUM</div><div class="var-desc">Threshold for medium risk (0–100)</div><div class="var-opt">Optional · e.g. 30</div></div>
+      </div>
+    </div>
+
+    <article class="article">
+      <h1>AI Risk Assessment Framework</h1>
+
+      <h2>Document Control</h2>
+      <table>
+        <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Organization</strong></td><td><span class="var-placeholder">{{ORGANIZATION_NAME}}</span></td></tr>
+          <tr><td><strong>Effective Date</strong></td><td><span class="var-placeholder">{{EFFECTIVE_DATE}}</span></td></tr>
+          <tr><td><strong>Version</strong></td><td>1.0</td></tr>
+          <tr><td><strong>Classification</strong></td><td><span class="var-placeholder">{{CLASSIFICATION}}</span></td></tr>
+          <tr><td><strong>Framework Owner</strong></td><td><span class="var-placeholder">{{FRAMEWORK_OWNER}}</span></td></tr>
+          <tr><td><strong>Approved By</strong></td><td><span class="var-placeholder">{{APPROVER}}</span></td></tr>
+          <tr><td><strong>Last Updated</strong></td><td>2026-01-27</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="raf-s1">1. Purpose and Scope</h2>
+      <p>This framework establishes a systematic approach for identifying, assessing, mitigating, and monitoring risks associated with AI systems at <span class="var-placeholder">{{ORGANIZATION_NAME}}</span>. It aligns with <strong>NIST AI RMF 1.0</strong> (GOVERN/MAP/MEASURE/MANAGE), <strong>ISO/IEC 42001:2023</strong> (Clauses 6.1, 8.1, 9.1), and <strong>EU AI Act</strong> Article 9.</p>
+
+      <h3>Risk Categories Covered</h3>
+      <ul>
+        <li>Bias and fairness risks</li>
+        <li>Privacy and data protection risks</li>
+        <li>Security and adversarial risks</li>
+        <li>Safety and reliability risks</li>
+        <li>Transparency and explainability limitations</li>
+        <li>Compliance and legal risks</li>
+        <li>Ethical and reputational risks</li>
+      </ul>
+
+      <h2 id="raf-s2">2. Risk Governance (GOVERN)</h2>
+      <h3>2.2 Risk Appetite and Tolerance</h3>
+      <table>
+        <thead><tr><th>Risk Level</th><th>Score Range</th><th>Action Required</th></tr></thead>
+        <tbody>
+          <tr><td><span class="risk-critical">Critical</span></td><td><span class="var-placeholder">{{RISK_TOLERANCE_CRITICAL}}</span>+</td><td>Not acceptable — must be mitigated before deployment or system discontinued</td></tr>
+          <tr><td><span class="risk-high">High</span></td><td><span class="var-placeholder">{{RISK_TOLERANCE_HIGH}}</span>–<span class="var-placeholder">{{RISK_TOLERANCE_CRITICAL}}</span></td><td>Requires executive approval and enhanced controls</td></tr>
+          <tr><td><span class="risk-medium">Medium</span></td><td><span class="var-placeholder">{{RISK_TOLERANCE_MEDIUM}}</span>–<span class="var-placeholder">{{RISK_TOLERANCE_HIGH}}</span></td><td>Requires risk committee approval and standard controls</td></tr>
+          <tr><td><span class="risk-low">Low</span></td><td>&lt;<span class="var-placeholder">{{RISK_TOLERANCE_MEDIUM}}</span></td><td>Acceptable with documented mitigation plan</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="raf-s4">4. Risk Identification (MAP)</h2>
+      <h3>4.1 AI Risk Categories</h3>
+
+      <h4>4.1.1 Bias and Fairness Risks</h4>
+      <p>AI system produces discriminatory outcomes or systematically disadvantages protected groups.</p>
+      <p><strong>Risk Factors:</strong> Biased/unrepresentative training data; features correlating with protected characteristics; model amplifying societal bias; no fairness testing; deployment context differs from training context.</p>
+      <p><strong>Potential Impacts:</strong> Discriminatory decisions (hiring, lending, insurance); anti-discrimination law violations; regulatory penalties; reputational damage.</p>
+
+      <h4>4.1.2 Privacy and Data Protection Risks</h4>
+      <p>AI system violates privacy rights or fails to protect personal data.</p>
+      <p><strong>Risk Factors:</strong> Processing PII/PHI; inadequate anonymization; unclear third-party vendor data usage; training without consent; re-identification risk.</p>
+      <p><strong>Potential Impacts:</strong> GDPR, CCPA, HIPAA violations; regulatory fines; inability to honor data subject rights.</p>
+
+      <h4>4.1.3 Security and Adversarial Risks</h4>
+      <p>AI system is vulnerable to attacks or can be exploited by adversaries.</p>
+      <p><strong>Key threats:</strong> Model poisoning, adversarial examples, model extraction, backdoors, prompt injection (LLMs), insufficient access controls.</p>
+
+      <h4>4.1.4 Safety and Reliability Risks</h4>
+      <p>AI system failures or inaccuracies cause harm or unsafe conditions.</p>
+      <p><strong>Risk Factors:</strong> Safety-critical deployment; performance degradation over time (data/concept drift); insufficient edge-case testing; no fail-safe mechanisms.</p>
+
+      <h4>4.1.5 Transparency and Explainability Risks</h4>
+      <p>Inability to explain AI decisions or understand how the system reaches conclusions.</p>
+      <p><strong>Risk Factors:</strong> Black-box models (deep neural networks); no explanation mechanism; regulatory explainability requirements (GDPR Article 22, fair lending laws).</p>
+
+      <h4>4.1.6 Compliance and Legal Risks</h4>
+      <p><strong>Risk Factors:</strong> Applicable regulations not identified; IP concerns with training data; lack of required assessments (DPIA, FRIA).</p>
+
+      <h4>4.1.7 Ethical and Reputational Risks</h4>
+      <p><strong>Risk Factors:</strong> Use case conflicting with ethical norms; potential harm to vulnerable populations; controversial contexts (surveillance, scoring, manipulation).</p>
+
+      <h2 id="raf-s5">5. Risk Assessment Process (MEASURE)</h2>
+      <h3>5.1.1 Likelihood Scale</h3>
+      <table>
+        <thead><tr><th>Rating</th><th>Likelihood</th><th>Probability</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Rare</td><td>&lt;5%</td></tr>
+          <tr><td>2</td><td>Unlikely</td><td>5–25%</td></tr>
+          <tr><td>3</td><td>Possible</td><td>25–50%</td></tr>
+          <tr><td>4</td><td>Likely</td><td>50–75%</td></tr>
+          <tr><td>5</td><td>Almost Certain</td><td>&gt;75%</td></tr>
+        </tbody>
+      </table>
+
+      <h3>5.1.2 Impact Scale</h3>
+      <table>
+        <thead><tr><th>Rating</th><th>Impact</th><th>Consequences</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Negligible</td><td>Minor inconvenience, no harm</td></tr>
+          <tr><td>2</td><td>Minor</td><td>Temporary service degradation, minor complaints</td></tr>
+          <tr><td>3</td><td>Moderate</td><td>Service disruption, customer churn, moderate financial loss</td></tr>
+          <tr><td>4</td><td>Major</td><td>Regulatory inquiry, significant financial loss, brand damage</td></tr>
+          <tr><td>5</td><td>Severe</td><td>Major fines, litigation, safety incidents, existential threat</td></tr>
+        </tbody>
+      </table>
+
+      <h3>5.1.3 Risk Matrix (Likelihood × Impact)</h3>
+      <table>
+        <thead><tr><th>Likelihood / Impact</th><th>Negligible (1)</th><th>Minor (2)</th><th>Moderate (3)</th><th>Major (4)</th><th>Severe (5)</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Almost Certain (5)</strong></td><td><span class="risk-medium">Med 5</span></td><td><span class="risk-medium">Med 10</span></td><td><span class="risk-high">High 15</span></td><td><span class="risk-critical">Crit 20</span></td><td><span class="risk-critical">Crit 25</span></td></tr>
+          <tr><td><strong>Likely (4)</strong></td><td><span class="risk-low">Low 4</span></td><td><span class="risk-medium">Med 8</span></td><td><span class="risk-high">High 12</span></td><td><span class="risk-high">High 16</span></td><td><span class="risk-critical">Crit 20</span></td></tr>
+          <tr><td><strong>Possible (3)</strong></td><td><span class="risk-low">Low 3</span></td><td><span class="risk-medium">Med 6</span></td><td><span class="risk-medium">Med 9</span></td><td><span class="risk-high">High 12</span></td><td><span class="risk-high">High 15</span></td></tr>
+          <tr><td><strong>Unlikely (2)</strong></td><td><span class="risk-low">Low 2</span></td><td><span class="risk-low">Low 4</span></td><td><span class="risk-medium">Med 6</span></td><td><span class="risk-medium">Med 8</span></td><td><span class="risk-high">High 10</span></td></tr>
+          <tr><td><strong>Rare (1)</strong></td><td><span class="risk-low">Low 1</span></td><td><span class="risk-low">Low 2</span></td><td><span class="risk-low">Low 3</span></td><td><span class="risk-low">Low 4</span></td><td><span class="risk-medium">Med 5</span></td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="raf-s6">6. Risk Mitigation (MANAGE)</h2>
+      <table>
+        <thead><tr><th>Risk Category</th><th>Primary Controls</th><th>Secondary Controls</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Bias &amp; Fairness</strong></td><td>Diverse training data, fairness metrics, disparate impact testing</td><td>Human review of high-stakes decisions, bias audits</td></tr>
+          <tr><td><strong>Privacy</strong></td><td>Data minimization, anonymization, DPA with vendors</td><td>Differential privacy, federated learning</td></tr>
+          <tr><td><strong>Security</strong></td><td>Input validation, access controls, encryption</td><td>Adversarial testing, penetration testing, bug bounty</td></tr>
+          <tr><td><strong>Safety &amp; Reliability</strong></td><td>Extensive testing, performance monitoring</td><td>Redundancy, fail-safe mechanisms, confidence thresholds</td></tr>
+          <tr><td><strong>Transparency</strong></td><td>Model documentation, decision logs</td><td>SHAP, LIME explainability tools, audit trails</td></tr>
+          <tr><td><strong>Compliance</strong></td><td>Legal review, regulatory mapping, required assessments</td><td>Compliance monitoring, regulatory change tracking</td></tr>
+          <tr><td><strong>Ethical &amp; Reputational</strong></td><td>Ethical review, stakeholder consultation</td><td>Transparency communication, third-party audit</td></tr>
+        </tbody>
+      </table>
+
+      <h3>6.3 Residual Risk Acceptance</h3>
+      <table>
+        <thead><tr><th>Residual Risk</th><th>Approval Required</th></tr></thead>
+        <tbody>
+          <tr><td><span class="risk-low">Low</span></td><td>AI System Owner</td></tr>
+          <tr><td><span class="risk-medium">Medium</span></td><td><span class="var-placeholder">{{RISK_COMMITTEE}}</span></td></tr>
+          <tr><td><span class="risk-high">High</span></td><td><span class="var-placeholder">{{RISK_COMMITTEE}}</span> + Executive Leadership</td></tr>
+          <tr><td><span class="risk-critical">Critical</span></td><td>Not acceptable — additional mitigation or avoid</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="raf-appendix">Appendix A: AI Risk Assessment Questionnaire</h2>
+      <h3>A.1 System Information</h3>
+      <ol>
+        <li>AI System Name</li>
+        <li>System Owner</li>
+        <li>Business Purpose</li>
+        <li>AI Technique (ML, LLM, computer vision, etc.)</li>
+        <li>Development Stage (proof-of-concept, pilot, production)</li>
+      </ol>
+      <h3>A.2 Use Context</h3>
+      <ol start="6">
+        <li>What decisions does the AI system make or inform?</li>
+        <li>Are decisions automated or do humans review AI outputs?</li>
+        <li>What is the consequence if AI makes an error?</li>
+        <li>How many people are affected?</li>
+        <li>In what geographic regions is the AI deployed?</li>
+      </ol>
+      <h3>A.4 Bias and Fairness</h3>
+      <ol start="16">
+        <li>Could the AI produce discriminatory outcomes based on protected characteristics?</li>
+        <li>Have you tested the model for fairness across demographic groups?</li>
+        <li>What fairness metrics are tracked (demographic parity, equal opportunity, equalized odds)?</li>
+        <li>Are there known disparate impacts or performance differences across groups?</li>
+        <li>Is there a process for individuals to challenge AI decisions?</li>
+      </ol>
+
+      <hr />
+      <h2>Document History</h2>
+      <table>
+        <thead><tr><th>Version</th><th>Date</th><th>Changes</th><th>Approved By</th></tr></thead>
+        <tbody>
+          <tr><td>1.0</td><td><span class="var-placeholder">{{EFFECTIVE_DATE}}</span></td><td>Initial framework release</td><td><span class="var-placeholder">{{APPROVER}}</span></td></tr>
+        </tbody>
+      </table>
+    </article>
+  </div><!-- /panel-1 -->
+
+
+  <!-- ════════════════════════════════════
+       PANEL 2 — MODEL DEVELOPMENT LIFECYCLE
+  ════════════════════════════════════ -->
+  <div class="doc-panel" id="panel-2">
+
+    <div class="doc-meta">
+      <h2>Model Development Lifecycle Standard</h2>
+      <div class="meta-badges">
+        <span class="badge badge-blue">Standard</span>
+        <span class="badge badge-green">v1.0</span>
+        <span class="badge badge-amber">Advanced · 3–5 hrs</span>
+        <span class="badge badge-slate">Updated 2026-01-27</span>
+      </div>
+      <div class="meta-grid">
+        <div class="meta-item"><label>Framework</label><span>NIST AI RMF 1.0, ISO/IEC 42001:2023, MLOps Best Practices</span></div>
+        <div class="meta-item"><label>Author</label><span>Community</span></div>
+      </div>
+    </div>
+
+    <div class="vars-section">
+      <h3>⚡ Template Variables — replace before use</h3>
+      <div class="vars-grid">
+        <div class="var-item"><div class="var-name">ORGANIZATION_NAME</div><div class="var-desc">Legal name of your organization</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">EFFECTIVE_DATE</div><div class="var-desc">Date when standard becomes effective</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">CLASSIFICATION</div><div class="var-desc">Document classification level</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">STANDARD_OWNER</div><div class="var-desc">Name and title of standard owner</div><div class="var-req">Required · e.g. Jane Smith, CDO</div></div>
+        <div class="var-item"><div class="var-name">APPROVER</div><div class="var-desc">Approving authority</div><div class="var-req">Required</div></div>
+        <div class="var-item"><div class="var-name">ML_PLATFORM</div><div class="var-desc">MLOps platform or tools used</div><div class="var-opt">Optional · e.g. MLflow</div></div>
+        <div class="var-item"><div class="var-name">MODEL_REGISTRY</div><div class="var-desc">Where models are registered and versioned</div><div class="var-opt">Optional · e.g. MLflow Model Registry</div></div>
+        <div class="var-item"><div class="var-name">DOCUMENTATION_SYSTEM</div><div class="var-desc">Where model documentation is stored</div><div class="var-opt">Optional · e.g. Confluence</div></div>
+        <div class="var-item"><div class="var-name">MONITORING_PLATFORM</div><div class="var-desc">Platform for production model monitoring</div><div class="var-opt">Optional · e.g. Datadog</div></div>
+        <div class="var-item"><div class="var-name">APPROVAL_WORKFLOW_TOOL</div><div class="var-desc">System for approval workflows</div><div class="var-opt">Optional · e.g. Jira</div></div>
+      </div>
+    </div>
+
+    <article class="article">
+      <h1>Model Development Lifecycle Standard</h1>
+
+      <h2>Document Control</h2>
+      <table>
+        <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Organization</strong></td><td><span class="var-placeholder">{{ORGANIZATION_NAME}}</span></td></tr>
+          <tr><td><strong>Effective Date</strong></td><td><span class="var-placeholder">{{EFFECTIVE_DATE}}</span></td></tr>
+          <tr><td><strong>Version</strong></td><td>1.0</td></tr>
+          <tr><td><strong>Classification</strong></td><td><span class="var-placeholder">{{CLASSIFICATION}}</span></td></tr>
+          <tr><td><strong>Standard Owner</strong></td><td><span class="var-placeholder">{{STANDARD_OWNER}}</span></td></tr>
+          <tr><td><strong>Approved By</strong></td><td><span class="var-placeholder">{{APPROVER}}</span></td></tr>
+          <tr><td><strong>Last Updated</strong></td><td>2026-01-27</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="mdl-s2">2. Lifecycle Stages Overview</h2>
+      <table>
+        <thead><tr><th>Stage</th><th>Purpose</th><th>Key Deliverables</th><th>Governance Gate</th></tr></thead>
+        <tbody>
+          <tr><td><strong>1. Problem Definition &amp; Scoping</strong></td><td>Define business problem, success criteria, ethical considerations</td><td>Business case, ethical review, stakeholder sign-off</td><td>Gate 1: Approval to Proceed</td></tr>
+          <tr><td><strong>2. Data Acquisition &amp; Preparation</strong></td><td>Acquire, clean, and prepare training data</td><td>Data governance review, privacy assessment, dataset documentation</td><td>Gate 2: Data Approval</td></tr>
+          <tr><td><strong>3. Model Development</strong></td><td>Design, train, and tune model</td><td>Algorithm justification, model card, fairness testing</td><td>Gate 3: Model Review</td></tr>
+          <tr><td><strong>4. Validation &amp; Testing</strong></td><td>Validate performance, fairness, security, and robustness</td><td>Validation report, test results, risk assessment</td><td>Gate 4: Deployment Approval</td></tr>
+          <tr><td><strong>5. Deployment</strong></td><td>Deploy to production with monitoring and controls</td><td>Deployment plan, runbook, rollback procedure</td><td>Gate 5: Production Sign-off</td></tr>
+          <tr><td><strong>6. Monitoring &amp; Maintenance</strong></td><td>Monitor performance, detect drift, retrain as needed</td><td>Monitoring dashboard, drift alerts, incident reports</td><td>Periodic review (quarterly)</td></tr>
+          <tr><td><strong>7. Retirement</strong></td><td>Decommission model when no longer needed</td><td>Retirement plan, data retention, documentation archive</td><td>Gate 6: Retirement Approval</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="mdl-s3">3. Stage 1: Problem Definition and Scoping</h2>
+      <h3>Key Activities</h3>
+      <ol>
+        <li><strong>Business Case Development:</strong> Define problem and objectives; identify stakeholders; estimate ROI; assess ML alternatives.</li>
+        <li><strong>Feasibility Assessment:</strong> Confirm data availability; evaluate technical feasibility; identify skill gaps.</li>
+        <li><strong>Ethical Review:</strong> Identify ethical concerns (bias, privacy, manipulation); assess impact on vulnerable populations.</li>
+        <li><strong>Success Criteria Definition:</strong> Define measurable metrics (accuracy, F1, AUC); establish fairness criteria; set acceptable thresholds.</li>
+      </ol>
+      <h3>Gate 1: Approval to Proceed</h3>
+      <p><strong>Approvers:</strong> Business Sponsor, <span class="var-placeholder">{{STANDARD_OWNER}}</span> / Data Science Lead, Ethics Reviewer, and for high-risk models: AI Governance Committee.</p>
+      <p><strong>Documented in:</strong> <span class="var-placeholder">{{APPROVAL_WORKFLOW_TOOL}}</span></p>
+
+      <h2 id="mdl-s4">4. Stage 2: Data Acquisition and Preparation</h2>
+      <h3>Key Activities</h3>
+      <ol>
+        <li><strong>Data Acquisition:</strong> Identify sources; verify permissions and legal rights; document data lineage.</li>
+        <li><strong>Data Governance Review:</strong> Classify data; check sharing agreements for ML restrictions.</li>
+        <li><strong>Privacy Assessment:</strong> Identify PII/PHI; complete DPIA if required; apply data minimization; document legal basis (GDPR Article 6).</li>
+        <li><strong>Bias Assessment:</strong> Analyze training data representativeness; check for historical bias.</li>
+        <li><strong>Data Preparation:</strong> Clean data; feature engineering; split into training/validation/test sets; document all preprocessing for reproducibility.</li>
+      </ol>
+      <h3>Required Documentation</h3>
+      <ul>
+        <li><strong>Dataset Card</strong> (Datasheets for Datasets format) — motivation, composition, collection, preprocessing, uses, distribution, maintenance</li>
+        <li><strong>Privacy Impact Assessment</strong> (if PII/PHI involved)</li>
+        <li><strong>Bias Assessment Report</strong> — known biases, underrepresented groups, mitigation strategies</li>
+      </ul>
+
+      <h2 id="mdl-s5">5. Stage 3: Model Development</h2>
+      <h3>Key Activities</h3>
+      <ol>
+        <li><strong>Algorithm Selection:</strong> Evaluate candidate algorithms; justify selection on problem type, interpretability, performance, computational constraints.</li>
+        <li><strong>Model Training:</strong> Train on training set; tune hyperparameters; implement cross-validation; track experiments in <span class="var-placeholder">{{ML_PLATFORM}}</span>.</li>
+        <li><strong>Fairness Testing:</strong> Test for disparate impact; calculate demographic parity, equal opportunity, equalized odds, predictive parity; apply bias mitigation if needed.</li>
+        <li><strong>Interpretability:</strong> For high-stakes decisions: implement LIME, SHAP, or attention mechanisms; validate with domain experts.</li>
+        <li><strong>Version Control:</strong> Commit code to Git; version training data; register model in <span class="var-placeholder">{{MODEL_REGISTRY}}</span>.</li>
+      </ol>
+      <h3>Required Documentation</h3>
+      <ul>
+        <li><strong>Model Card</strong> — model details, intended use, factors, metrics, evaluation data, ethical considerations, caveats</li>
+        <li><strong>Algorithm Justification</strong></li>
+        <li><strong>Fairness Testing Report</strong></li>
+      </ul>
+
+      <h2 id="mdl-s6">6. Stage 4: Validation and Testing</h2>
+      <h3>Testing Checklist</h3>
+      <ul>
+        <li><strong>Performance Validation:</strong> Evaluate on held-out test set; compare to baseline and success criteria; test edge cases and OOD data.</li>
+        <li><strong>Fairness Validation:</strong> Re-test fairness metrics; confirm no disparate impact on protected groups.</li>
+        <li><strong>Robustness Testing:</strong> Test with noisy/corrupted inputs; evaluate sensitivity to perturbations; validate confidence calibration.</li>
+        <li><strong>Security Testing:</strong> Test adversarial inputs (FGSM, PGD); check for data leakage; for LLMs: test prompt injection and jailbreaks.</li>
+        <li><strong>UAT:</strong> Validate with end users in realistic scenarios; collect feedback on outputs and explanations.</li>
+        <li><strong>Risk Assessment:</strong> Complete AI Risk Assessment (per the AI Risk Assessment Framework).</li>
+      </ul>
+      <h3>Gate 4: Deployment Approval</h3>
+      <p><strong>Approvers:</strong> Data Science Lead, Business Sponsor, Information Security, and for high-risk models: AI Governance Committee, Legal/Compliance.</p>
+
+      <h2 id="mdl-s7">7. Stage 5: Deployment</h2>
+      <h3>Key Activities</h3>
+      <ol>
+        <li><strong>Deployment Planning:</strong> Define architecture (batch/real-time/edge); plan rollout strategy (canary, blue-green, phased); prepare rollback plan.</li>
+        <li><strong>Monitoring Setup:</strong> Configure performance monitoring in <span class="var-placeholder">{{MONITORING_PLATFORM}}</span>; set up drift detection; implement alerts for accuracy drop, fairness violations, high error rates, adversarial inputs.</li>
+        <li><strong>Human-in-the-Loop Controls:</strong> Implement human review for edge cases or low-confidence predictions; define confidence thresholds.</li>
+        <li><strong>Operational Handoff:</strong> Train operations team; provide runbook; document escalation procedures; establish on-call rotation.</li>
+      </ol>
+
+      <h2 id="mdl-s8">8. Stage 6: Monitoring and Maintenance</h2>
+      <h3>Drift Detection</h3>
+      <ul>
+        <li><strong>Data Drift:</strong> Changes in input feature distributions — use KS test, Chi-square test; alert when distributions diverge.</li>
+        <li><strong>Concept Drift:</strong> Changes in relationship between features and outcome — monitor ground truth vs. predictions.</li>
+        <li><strong>Prediction Drift:</strong> Changes in model output distribution.</li>
+      </ul>
+      <h3>Retraining Triggers</h3>
+      <ul>
+        <li>Performance degrades below threshold (e.g., 5% accuracy drop)</li>
+        <li>Significant data drift detected</li>
+        <li>6 months of new training data accumulated</li>
+        <li>Business requirements change</li>
+        <li>Security vulnerability discovered</li>
+      </ul>
+      <h3>Review Cadence</h3>
+      <table>
+        <thead><tr><th>Model Risk Level</th><th>Review Frequency</th></tr></thead>
+        <tbody>
+          <tr><td><span class="risk-high">High Risk</span></td><td>Quarterly</td></tr>
+          <tr><td><span class="risk-medium">Medium Risk</span> / <span class="risk-low">Low Risk</span></td><td>Annual</td></tr>
+          <tr><td>Any</td><td>Ad-hoc on incident, drift, or performance degradation</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="mdl-s9">9. Stage 7: Retirement</h2>
+      <h3>Retirement Triggers</h3>
+      <ul>
+        <li>Model superseded by a new version or alternative approach</li>
+        <li>Business use case no longer exists</li>
+        <li>Model performance unacceptable and cannot be improved</li>
+        <li>Regulatory changes make model non-compliant</li>
+        <li>Security vulnerabilities cannot be adequately mitigated</li>
+        <li>Maintenance cost exceeds business value</li>
+      </ul>
+      <h3>Required Documentation</h3>
+      <ul>
+        <li><strong>Retirement Plan:</strong> Timeline, stakeholder communication, transition plan</li>
+        <li><strong>Decommissioning Checklist:</strong> Confirmation all production systems updated</li>
+        <li><strong>Data Retention Record:</strong> What was retained, what was deleted, retention periods</li>
+        <li><strong>Archival Index:</strong> Where documentation is archived</li>
+        <li><strong>Lessons Learned Report:</strong> Retrospective on model lifecycle</li>
+      </ul>
+      <blockquote>Archive minimum 7 years for high-risk models (or per regulatory requirements).</blockquote>
+
+      <h2>10. Governance Checkpoints Summary</h2>
+      <table>
+        <thead><tr><th>Gate</th><th>Stage</th><th>Approvers</th><th>Key Artifacts</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Gate 1</strong></td><td>Stage 1</td><td>Business Sponsor, Data Science Lead, Ethics Reviewer</td><td>Business case, ethical review, success criteria</td></tr>
+          <tr><td><strong>Gate 2</strong></td><td>Stage 2</td><td>Data Governance, Privacy Team</td><td>Dataset card, privacy assessment, bias assessment</td></tr>
+          <tr><td><strong>Gate 3</strong></td><td>Stage 3</td><td>Data Science Lead, Business Stakeholder</td><td>Model card, algorithm justification, fairness report</td></tr>
+          <tr><td><strong>Gate 4</strong></td><td>Stage 4</td><td>Data Science Lead, Business Sponsor, InfoSec</td><td>Validation report, risk assessment, UAT results</td></tr>
+          <tr><td><strong>Gate 5</strong></td><td>Stage 5</td><td>Operations Lead, Data Science Lead, Business Sponsor</td><td>Deployment plan, runbook, rollback procedure</td></tr>
+          <tr><td><strong>Gate 6</strong></td><td>Stage 7</td><td>Model Owner, Business Sponsor, Data Science Lead</td><td>Retirement plan, data retention record, archival index</td></tr>
+        </tbody>
+      </table>
+
+      <h2>12. Risk-Based Requirements</h2>
+      <table>
+        <thead><tr><th>Requirement</th><th>Low Risk</th><th>Medium Risk</th><th>High Risk</th></tr></thead>
+        <tbody>
+          <tr><td>Ethical Review</td><td>Optional</td><td>Recommended</td><td><strong>Required</strong></td></tr>
+          <tr><td>Privacy Assessment</td><td>If PII involved</td><td>Required if PII</td><td><strong>Required; formal DPIA</strong></td></tr>
+          <tr><td>Fairness Testing</td><td>Recommended</td><td>Required</td><td><strong>Required + external review</strong></td></tr>
+          <tr><td>Explainability</td><td>Optional</td><td>Recommended</td><td><strong>Required</strong></td></tr>
+          <tr><td>Security Testing</td><td>Basic</td><td>Standard</td><td><strong>Enhanced + pen testing</strong></td></tr>
+          <tr><td>AI Governance Committee</td><td>Not required</td><td>Deployment approval</td><td><strong>All major gates</strong></td></tr>
+          <tr><td>Monitoring</td><td>Monthly</td><td>Weekly</td><td><strong>Daily</strong></td></tr>
+          <tr><td>Periodic Review</td><td>Annual</td><td>Annual</td><td><strong>Quarterly</strong></td></tr>
+        </tbody>
+      </table>
+
+      <hr />
+      <h2>Document History</h2>
+      <table>
+        <thead><tr><th>Version</th><th>Date</th><th>Changes</th><th>Approved By</th></tr></thead>
+        <tbody>
+          <tr><td>1.0</td><td><span class="var-placeholder">{{EFFECTIVE_DATE}}</span></td><td>Initial standard release</td><td><span class="var-placeholder">{{APPROVER}}</span></td></tr>
+        </tbody>
+      </table>
+    </article>
+  </div><!-- /panel-2 -->
+
+</div><!-- /main -->
+
+<script>
+  const tabs = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.doc-panel');
+  const navItems = document.querySelectorAll('.nav-item');
+
+  function switchTab(idx) {
+    tabs.forEach((t, i) => t.classList.toggle('active', i === idx));
+    panels.forEach((p, i) => p.classList.toggle('active', i === idx));
+    navItems.forEach(n => n.classList.toggle('active', +n.dataset.idx === idx));
+  }
+
+  function scrollTo(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function filterNav(q) {
+    const lower = q.toLowerCase();
+    document.querySelectorAll('.nav-item, .nav-sub').forEach(el => {
+      el.style.display = (!q || el.textContent.toLowerCase().includes(lower)) ? '' : 'none';
+    });
+  }
+</script>
+</body>
+</html>
